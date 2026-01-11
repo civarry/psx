@@ -126,50 +126,6 @@ hide_style = """
 
     /* Hide any SVG logo */
     a[href*="streamlit.io"] {display: none !important;}
-
-    /* Hide Streamlit Cloud bottom-right elements (avatar, upgrade button) */
-    [data-testid="stAppViewBlockContainer"] + div {display: none !important;}
-
-    /* Hide the bottom-right floating buttons/badges */
-    div[class*="stBottom"] {display: none !important;}
-    div[class*="bottom"] > div > a {display: none !important;}
-
-    /* Hide Streamlit Cloud specific elements */
-    [data-testid="stDecoration"] {display: none !important;}
-    [data-testid="stStatusWidget"] {display: none !important;}
-
-    /* Hide the colored bar at top */
-    [data-testid="stHeader"] {display: none !important;}
-
-    /* Hide bottom iframe and embed elements */
-    iframe[title="streamlit_cloud"] {display: none !important;}
-
-    /* Hide any fixed position elements in bottom right corner */
-    div[style*="position: fixed"][style*="bottom"] {display: none !important;}
-    div[style*="position: fixed"][style*="right"] {display: none !important;}
-
-    /* Target the specific Streamlit Cloud viewer badge and buttons */
-    [class*="viewerBadge"] {display: none !important;}
-    [class*="stDeployButton"] {display: none !important;}
-    button[kind="viewerBadge"] {display: none !important;}
-
-    /* Hide avatar and upgrade elements by common patterns */
-    img[alt*="avatar"] {display: none !important;}
-    img[alt*="Avatar"] {display: none !important;}
-    [class*="Avatar"] {display: none !important;}
-    [class*="avatar"] {display: none !important;}
-
-    /* Hide crown/upgrade button */
-    [class*="upgrade"] {display: none !important;}
-    [class*="Upgrade"] {display: none !important;}
-    button[class*="crown"] {display: none !important;}
-
-    /* Nuclear option: hide the entire bottom-right fixed container */
-    .stApp > div:last-child > div[style*="fixed"] {display: none !important;}
-
-    /* Hide Streamlit Cloud community elements */
-    [data-testid="stCommunityBadge"] {display: none !important;}
-    [data-testid="stCloudBadge"] {display: none !important;}
     </style>
 """
 st.markdown(hide_style, unsafe_allow_html=True)
