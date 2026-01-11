@@ -14,5 +14,4 @@ headless = true
 gatherUsageStats = false
 
 [client]
-showSidebarNavigation = false
 toolbarMode = "minimal"
