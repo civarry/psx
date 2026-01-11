@@ -1,29 +1,26 @@
 """
-Payslip Automation System - Streamlit Application
-Generate and email payslips automatically from Excel data
+Document Automation System - Streamlit Application
+Generate and email payslips, excess OT, and allowance documents automatically from Excel data
 """
 
 import streamlit as st
-import pandas as pd
 import tempfile
 import shutil
-import zipfile
-import io
-import json
 import atexit
+import json
 from pathlib import Path
 from datetime import datetime
 
-from utils.pdf_generator import create_payslip_pdf
-from utils.email_sender import EmailSender
-from utils.validators import validate_excel_data, test_smtp_connection
-from utils.excel_handler import load_excel_file
 from config.constants import (
-    REQUIRED_COLUMNS, SMTP_SERVER, SMTP_PORT,
     DEFAULT_COMPANY_NAME, DEFAULT_FOOTER_TEXT,
     DEFAULT_DOCUMENT_ID, DEFAULT_EFFECTIVITY_DATE,
     DEFAULT_LOGO_PATH
 )
+
+from tabs.payslip_tab import render_payslip_tab
+from tabs.excess_ot_tab import render_excess_ot_tab
+from tabs.allowance_tab import render_allowance_tab
+
 
 # ---------- TEMP FILE CLEANUP ----------
 
@@ -41,9 +38,9 @@ def cleanup_old_temp_dirs():
                     dir_mtime = datetime.fromtimestamp(temp_dir.stat().st_mtime)
                     age_hours = (current_time - dir_mtime).total_seconds() / 3600
 
-                    # If older than 24 hours and contains payslip PDFs, clean it up
+                    # If older than 24 hours and contains document PDFs, clean it up
                     if age_hours > 24:
-                        pdf_files = list(temp_dir.glob("payslip_*.pdf"))
+                        pdf_files = list(temp_dir.glob("*.pdf"))
                         if pdf_files:  # Only delete if it looks like our temp dir
                             shutil.rmtree(temp_dir, ignore_errors=True)
                 except (OSError, PermissionError):
@@ -52,6 +49,7 @@ def cleanup_old_temp_dirs():
     except Exception:
         # Don't fail app startup if cleanup fails
         pass
+
 
 def cleanup_temp_dir(temp_dir_path):
     """Safely cleanup a temporary directory"""
@@ -63,8 +61,10 @@ def cleanup_temp_dir(temp_dir_path):
         except Exception:
             pass
 
+
 # Cleanup old temp directories on app startup
 cleanup_old_temp_dirs()
+
 
 # Register cleanup on exit
 @atexit.register
@@ -73,50 +73,20 @@ def cleanup_on_exit():
     if hasattr(st.session_state, 'temp_dir') and st.session_state.temp_dir:
         cleanup_temp_dir(st.session_state.temp_dir)
 
+
 # ---------- PAGE CONFIGURATION ----------
 
 st.set_page_config(
-    page_title="Payslip Automation System",
-    page_icon="📧",
+    page_title="Document Automation System",
     layout="wide",
     initial_sidebar_state="expanded"
 )
 
-# ---------- COMPANY CONFIG HELPERS ----------
-
-def load_company_config(uploaded_file):
-    """Load company configuration from uploaded JSON file"""
-    try:
-        config_data = json.load(uploaded_file)
-
-        # Validate SMTP nested structure
-        smtp_config = config_data.get('smtp', {})
-        if not smtp_config.get('email') or not smtp_config.get('password'):
-            return False, None, "SMTP configuration incomplete. Both email and password are required. Please download the latest config template."
-
-        # Extract valid fields (flatten SMTP for easier session state management)
-        valid_config = {
-            'company_name': config_data.get('company_name', ''),
-            'footer_text': config_data.get('footer_text', ''),
-            'document_id': config_data.get('document_id', ''),
-            'effectivity_date': config_data.get('effectivity_date', ''),
-            'smtp_email': smtp_config.get('email', ''),
-            'smtp_password': smtp_config.get('password', '')
-        }
-
-        return True, valid_config, "Configuration loaded successfully!"
-
-    except json.JSONDecodeError:
-        return False, None, "Invalid JSON file. Please check the file format."
-    except Exception as e:
-        return False, None, f"Error loading config: {str(e)}"
 
 # ---------- SESSION STATE INITIALIZATION ----------
 
 def init_session_state():
     """Initialize session state variables"""
-    if 'df' not in st.session_state:
-        st.session_state.df = None
     if 'smtp_email' not in st.session_state:
         st.session_state.smtp_email = ""
     if 'smtp_password' not in st.session_state:
@@ -124,9 +94,12 @@ def init_session_state():
     if 'smtp_validated' not in st.session_state:
         st.session_state.smtp_validated = False
     if 'temp_dir' not in st.session_state:
-        st.session_state.temp_dir = None
-    if 'processing_results' not in st.session_state:
-        st.session_state.processing_results = None
+        # Create a persistent temp directory for the session
+        try:
+            st.session_state.temp_dir = tempfile.mkdtemp(prefix="doc_automation_")
+        except Exception:
+            # Fallback to None if temp directory creation fails
+            st.session_state.temp_dir = None
     if 'company_name' not in st.session_state:
         st.session_state.company_name = DEFAULT_COMPANY_NAME
     if 'footer_text' not in st.session_state:
@@ -140,107 +113,101 @@ def init_session_state():
     if 'config_loaded' not in st.session_state:
         st.session_state.config_loaded = False
     if 'output_directory' not in st.session_state:
-        st.session_state.output_directory = ""
+        st.session_state.output_directory = "./output"
+    if 'smtp_server' not in st.session_state:
+        st.session_state.smtp_server = "smtp.gmail.com"
+    if 'smtp_port' not in st.session_state:
+        st.session_state.smtp_port = 587
+    if 'dry_run_mode' not in st.session_state:
+        st.session_state.dry_run_mode = False
+
 
 init_session_state()
+
 
 # ---------- SIDEBAR ----------
 
 with st.sidebar:
-    st.title("Payslip Automation")
+    st.title("Document Automation")
 
     # Templates Section
-    with st.expander("📥 Download Templates", expanded=False):
+    with st.expander("Download Templates", expanded=False):
         # Company config template
-        st.markdown("**Company Config Template**")
-        config_template_path = "templates/company_config.json"
-        if Path(config_template_path).exists():
-            with open(config_template_path, "rb") as template_file:
-                st.download_button(
-                    label="📄 Company Config",
-                    data=template_file,
-                    file_name="company_config.json",
-                    mime="application/json",
-                    width='stretch',
-                    help="Download template to fill in your company details"
-                )
+        with st.container(border=True):
+            st.markdown("**Company Config Template**")
+            st.markdown("Basic company setup details and configuration file.")
+            config_template_path = "templates/company_config.json"
+            if Path(config_template_path).exists():
+                with open(config_template_path, "rb") as template_file:
+                    st.download_button(
+                        label="Company Config",
+                        data=template_file,
+                        file_name="company_config.json",
+                        mime="application/json",
+                        type="primary",
+                        help="Download template to fill in your company details",
+                        use_container_width=True
+                    )
 
-        # Payroll template
-        st.markdown("**Payroll Excel Template**")
-        payroll_template_path = "templates/payroll_template.xlsx"
-        if Path(payroll_template_path).exists():
-            with open(payroll_template_path, "rb") as template_file:
-                st.download_button(
-                    label="📊 Payroll Excel",
-                    data=template_file,
-                    file_name="payroll_template.xlsx",
-                    mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-                    width='stretch',
-                    help="Download Excel template for payroll data"
-                )
+        # Excel templates
+        with st.container(border=True):
+            st.markdown("**Excel Templates**")
+            st.markdown("Standard Excel templates used for payroll computation.")
 
-    # Combined Settings expander
-    with st.expander("⚙️ Settings", expanded=False):
-        # Configuration Upload
-        st.subheader("Configuration")
+            # Payroll template
+            payroll_template_path = "templates/payroll_template.xlsx"
+            if Path(payroll_template_path).exists():
+                with open(payroll_template_path, "rb") as template_file:
+                    st.download_button(
+                        label="Payroll",
+                        data=template_file,
+                        file_name="payroll_template.xlsx",
+                        mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                        type="primary",
+                        help="Download Excel template for payroll data",
+                        use_container_width=True
+                    )
 
-        # Config file upload
-        config_file = st.file_uploader(
-            "Upload Config File",
-            type=['json'],
-            help="Upload your company_config.json file (download template above)",
-            key="company_config_uploader"
-        )
+            # Excess OT template
+            ot_template_path = "templates/excess_ot_template.xlsx"
+            if Path(ot_template_path).exists():
+                with open(ot_template_path, "rb") as template_file:
+                    st.download_button(
+                        label="Excess OT",
+                        data=template_file,
+                        file_name="excess_ot_template.xlsx",
+                        mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                        type="primary",
+                        help="Download Excel template for excess overtime data",
+                        use_container_width=True
+                    )
 
-        # Load config if uploaded
-        if config_file is not None:
-            # Only process if not already loaded (prevent re-processing on every rerun)
-            if not st.session_state.get('config_loaded', False):
-                success, config_data, message = load_company_config(config_file)
-                if success:
-                    # Load company details
-                    st.session_state.company_name = config_data['company_name']
-                    st.session_state.footer_text = config_data['footer_text']
-                    st.session_state.document_id = config_data['document_id']
-                    st.session_state.effectivity_date = config_data['effectivity_date']
+            # Allowance template
+            allowance_template_path = "templates/allowance_template.xlsx"
+            if Path(allowance_template_path).exists():
+                with open(allowance_template_path, "rb") as template_file:
+                    st.download_button(
+                        label="Allowance",
+                        data=template_file,
+                        file_name="allowance_template.xlsx",
+                        mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                        type="primary",
+                        help="Download Excel template for allowance data",
+                        use_container_width=True
+                    )
 
-                    # Load SMTP credentials
-                    st.session_state.smtp_email = config_data['smtp_email']
-                    st.session_state.smtp_password = config_data['smtp_password']
+    # Settings Section
+    with st.expander("Settings", expanded=False):
+        # Configuration Container
+        with st.container(border=True):
+            st.subheader("Configuration")
 
-                    # Auto-validate SMTP connection
-                    with st.spinner("Validating SMTP connection..."):
-                        smtp_success, smtp_message = test_smtp_connection(
-                            config_data['smtp_email'],
-                            config_data['smtp_password'],
-                            SMTP_SERVER,
-                            SMTP_PORT
-                        )
-                        st.session_state.smtp_validated = smtp_success
+            # Show current config if loaded, otherwise show uploader
+            if st.session_state.get('config_loaded', False) and st.session_state.company_name:
+                st.caption("**Company:** " + st.session_state.company_name)
+                st.caption("**Email:** " + st.session_state.smtp_email)
 
-                    st.session_state.config_loaded = True
-
-                    # Show one-time message based on SMTP validation
-                    if not smtp_success:
-                        st.error(f"❌ SMTP validation failed: {smtp_message}")
-                        st.info("💡 Check your SMTP credentials in the config file")
-                else:
-                    st.error(f"❌ {message}")
-                    st.session_state.config_loaded = False
-
-        # Show current config if loaded
-        if st.session_state.get('config_loaded', False) and st.session_state.company_name:
-            st.divider()
-
-            # Display loaded configuration summary
-            col1, col2 = st.columns([3, 1])
-            with col1:
-                st.caption("**Loaded Configuration:**")
-                st.caption(f"🏢 {st.session_state.company_name}")
-                st.caption(f"📧 {st.session_state.smtp_email}")
-            with col2:
-                if st.button("Clear", width='stretch', help="Clear configuration"):
-                    # Clear all config-related session state
+                if st.button("Clear Configuration", help="Clear configuration", use_container_width=True):
                     st.session_state.company_name = ""
                     st.session_state.footer_text = ""
                     st.session_state.document_id = ""
@@ -250,18 +217,103 @@ with st.sidebar:
                     st.session_state.smtp_validated = False
                     st.session_state.config_loaded = False
                     st.rerun()
+            else:
+                # Config file upload
+                config_file = st.file_uploader(
+                    "Upload Config File",
+                    type=['json'],
+                    help="Upload your company_config.json file (download template above)",
+                    key="company_config_uploader"
+                )
 
-        st.divider()
+                # Load config if uploaded
+                if config_file is not None:
+                    try:
+                        config_data = json.load(config_file)
 
-        # Company logo (always visible)
-        company_logo = st.file_uploader(
-            "Logo (optional)",
-            type=['png', 'jpg', 'jpeg'],
-            help="Appears at top of payslip"
-        )
+                        # Validate SMTP nested structure
+                        smtp_config = config_data.get('smtp', {})
+                        if not smtp_config.get('email') or not smtp_config.get('password'):
+                            st.error("SMTP configuration incomplete. Both email and password are required.")
+                        else:
+                            # Load company details
+                            st.session_state.company_name = config_data.get('company_name', '')
+                            st.session_state.footer_text = config_data.get('footer_text', '')
+                            st.session_state.document_id = config_data.get('document_id', '')
+                            st.session_state.effectivity_date = config_data.get('effectivity_date', '')
+
+                            # Load SMTP credentials
+                            st.session_state.smtp_email = smtp_config.get('email', '')
+                            st.session_state.smtp_password = smtp_config.get('password', '')
+
+                            st.session_state.config_loaded = True
+                            st.rerun()
+
+                    except json.JSONDecodeError:
+                        st.error("Invalid JSON file. Please check the file format.")
+                    except Exception as e:
+                        st.error(f"Error loading config: {str(e)}")
+
+        # Logo Container
+        with st.container(border=True):
+            st.subheader("Company Logo")
+
+            # Check if custom logo is uploaded
+            has_custom_logo = (
+                st.session_state.get('company_logo_path') and
+                st.session_state.company_logo_path != 'assets/logo.png' and
+                Path(st.session_state.company_logo_path).exists()
+            )
+
+            if has_custom_logo:
+                st.caption("**Status:** Custom logo uploaded")
+
+                if st.button("Clear Logo", help="Remove custom logo", use_container_width=True):
+                    st.session_state.company_logo_path = 'assets/logo.png'
+                    st.rerun()
+            else:
+                company_logo = st.file_uploader(
+                    "Upload Logo (optional)",
+                    type=['png', 'jpg', 'jpeg'],
+                    help="Appears at top of documents"
+                )
+
+                if company_logo:
+                    # Ensure temp_dir exists
+                    if not st.session_state.temp_dir:
+                        st.session_state.temp_dir = tempfile.mkdtemp(prefix="doc_automation_")
+
+                    # Save logo to temp location
+                    logo_path = Path(st.session_state.temp_dir) / "custom_logo.png"
+                    with open(logo_path, "wb") as f:
+                        f.write(company_logo.getbuffer())
+                    st.session_state.company_logo_path = str(logo_path)
+                    st.rerun()
+
+        # Processing Mode Container
+        with st.container(border=True):
+            st.subheader("Processing Mode")
+            dry_run = st.checkbox(
+                "Dry Run Mode",
+                value=False,
+                help="Generate PDFs without sending emails",
+                key="global_dry_run"
+            )
+
+            if dry_run:
+                output_dir = st.text_input(
+                    "Output Directory",
+                    value="./output",
+                    help="Directory to save generated PDFs",
+                    key="global_output_dir"
+                )
+                st.session_state.output_directory = output_dir
+
+            # Store dry run state
+            st.session_state.dry_run_mode = dry_run
 
     # Gmail App Password Guide
-    with st.expander("ℹ️ Gmail App Password Guide"):
+    with st.expander("Gmail App Password Guide"):
         st.markdown("""
         **1. Enable 2-Factor Authentication**
         - Go to [Google Account](https://myaccount.google.com/)
@@ -274,334 +326,26 @@ with st.sidebar:
         - Copy the 16-character password
 
         **3. Use in config file**
-        - Paste the app password in the `smtp.password` field of your config file
+        - Paste the app password in the `smtp.password` field
         - Note: Use app password, not regular password!
-        - Spaces are ok (e.g., "xxxx xxxx xxxx xxxx")
         """)
 
 
-# ---------- MAIN AREA ----------
+# ---------- MAIN APPLICATION ----------
 
-st.title("📧 Payslip Automation")
+# Create tabs
+tab1, tab2, tab3 = st.tabs([
+    "Payslips",
+    "Excess OT",
+    "Allowance"
+])
 
-# File Upload
-uploaded_file = st.file_uploader(
-    "Upload Excel File",
-    type=['xlsx'],
-    help="Upload your payroll Excel file (download template from sidebar)"
-)
+# Render each tab
+with tab1:
+    render_payslip_tab()
 
-# Process uploaded file
-if uploaded_file is not None:
-    try:
-        # Load and validate data
-        df = load_excel_file(uploaded_file)
-        is_valid, validation_errors = validate_excel_data(df, REQUIRED_COLUMNS)
+with tab2:
+    render_excess_ot_tab()
 
-        if is_valid:
-            st.session_state.df = df
-            st.success(f"✅ File loaded successfully! Found {len(df)} employee(s)")
-
-            # Data Preview (collapsible)
-            with st.expander("📊 Data Preview", expanded=True):
-                # Display key metrics (reduced to 2)
-                col1, col2 = st.columns(2)
-                with col1:
-                    st.metric("Employees", len(df))
-                with col2:
-                    payroll_period = df['PayrollPeriod'].iloc[0] if 'PayrollPeriod' in df.columns else "N/A"
-                    st.metric("Payroll Period", payroll_period)
-
-                # Display all columns
-                df_display = df.copy()
-
-                # Format currency columns (common ones)
-                currency_columns = ['GrossIncome', 'TotalDeductions', 'NetPay',
-                                  'BasicPay', 'Allowance', 'Overtime', 'Deductions']
-                for col in currency_columns:
-                    if col in df_display.columns:
-                        df_display[col] = df_display[col].apply(lambda x: f"₱{x:,.2f}")
-
-                st.dataframe(df_display, width='stretch', height=300)
-
-            # Send Options
-            dry_run = st.checkbox(
-                "🧪 Dry run (generate PDFs only)",
-                value=False,
-                help="Test PDF generation without sending emails"
-            )
-
-            # Output directory selection for dry run
-            if dry_run:
-                output_dir = st.text_input(
-                    "📁 Output Directory",
-                    value=st.session_state.output_directory,
-                    placeholder="/path/to/save/pdfs",
-                    help="Enter the full path where PDFs will be saved (e.g., /Users/yourname/Desktop/payslips)"
-                )
-                if output_dir != st.session_state.output_directory:
-                    st.session_state.output_directory = output_dir
-
-            # Validation before sending
-            can_send = True
-            missing_requirements = []
-
-            if not st.session_state.config_loaded:
-                missing_requirements.append("Upload config file in sidebar")
-
-            if dry_run:
-                # Validate output directory for dry run
-                if not st.session_state.output_directory:
-                    missing_requirements.append("Enter output directory path for dry run")
-                elif not Path(st.session_state.output_directory).exists():
-                    missing_requirements.append(f"Output directory does not exist: {st.session_state.output_directory}")
-                elif not Path(st.session_state.output_directory).is_dir():
-                    missing_requirements.append(f"Output path is not a directory: {st.session_state.output_directory}")
-
-            if not dry_run and not st.session_state.smtp_validated:
-                missing_requirements.append("SMTP validation failed - check config file")
-
-            if missing_requirements:
-                st.warning("⚠️ **Requirements missing:**")
-                for req in missing_requirements:
-                    st.warning(f"  • {req}")
-                can_send = False
-
-            # Send button
-            if st.button("🚀 Start Processing", type="primary", width='stretch', disabled=not can_send and not dry_run):
-                # Determine output directory for PDFs
-                if dry_run:
-                    # Use user-specified directory for dry run
-                    st.session_state.temp_dir = st.session_state.output_directory
-                else:
-                    # Create temp directory for normal mode
-                    if st.session_state.temp_dir is None:
-                        st.session_state.temp_dir = tempfile.mkdtemp()
-
-                # Determine logo path
-                logo_path = DEFAULT_LOGO_PATH
-                if company_logo is not None:
-                    # Save custom logo to temp
-                    custom_logo_path = Path(st.session_state.temp_dir) / "custom_logo.png"
-                    with open(custom_logo_path, "wb") as f:
-                        f.write(company_logo.getbuffer())
-                    logo_path = str(custom_logo_path)
-
-                # Prepare company config
-                company_config = {
-                    'company_name': st.session_state.company_name,
-                    'footer_text': st.session_state.footer_text,
-                    'document_id': st.session_state.document_id,
-                    'effectivity_date': st.session_state.effectivity_date
-                }
-
-                # Process payslips
-                results = []
-
-                # Progress tracking
-                progress_bar = st.progress(0)
-                status_text = st.empty()
-
-                # Initialize email sender if not dry run
-                email_sender = None
-                if not dry_run:
-                    email_sender = EmailSender(
-                        st.session_state.smtp_email,
-                        st.session_state.smtp_password,
-                        SMTP_SERVER,
-                        SMTP_PORT
-                    )
-                    success, message = email_sender.connect()
-                    if not success:
-                        st.error(f"Failed to connect to SMTP server: {message}")
-                        st.stop()
-
-                # Process each employee
-                quota_exceeded = False
-                for idx, (_, row) in enumerate(df.iterrows()):
-                    try:
-                        # Update progress
-                        progress = (idx + 1) / len(df)
-                        progress_bar.progress(progress)
-                        status_text.text(f"Processing {row['Name']} ({idx + 1}/{len(df)})")
-
-                        # Generate PDF
-                        pdf_path = create_payslip_pdf(
-                            row,
-                            output_dir=st.session_state.temp_dir,
-                            logo_path=logo_path if Path(logo_path).exists() else None,
-                            company_config=company_config
-                        )
-
-                        # Send email if not dry run
-                        if not dry_run and email_sender:
-                            success, message, quota_exceeded = email_sender.send_payslip(row, pdf_path)
-
-                            # Check if quota was exceeded
-                            if quota_exceeded:
-                                results.append({
-                                    'Employee': row['Name'],
-                                    'Email': row['Email'],
-                                    'Status': 'Quota Exceeded',
-                                    'Message': 'Gmail daily limit reached - email not sent',
-                                    'PDF': pdf_path
-                                })
-                                # Stop processing immediately
-                                status_text.text(f"⚠️ Gmail quota exceeded at employee {idx + 1}/{len(df)}")
-                                break
-
-                            results.append({
-                                'Employee': row['Name'],
-                                'Email': row['Email'],
-                                'Status': 'Sent' if success else 'Failed',
-                                'Message': message,
-                                'PDF': pdf_path
-                            })
-                        else:
-                            results.append({
-                                'Employee': row['Name'],
-                                'Email': row['Email'],
-                                'Status': 'Generated',
-                                'Message': 'PDF created (dry run mode)',
-                                'PDF': pdf_path
-                            })
-
-                    except Exception as e:
-                        results.append({
-                            'Employee': row.get('Name', 'Unknown'),
-                            'Email': row.get('Email', 'Unknown'),
-                            'Status': 'Error',
-                            'Message': str(e),
-                            'PDF': None
-                        })
-
-                # Cleanup email connection
-                if email_sender:
-                    email_sender.disconnect()
-
-                # Clear progress
-                progress_bar.empty()
-                status_text.empty()
-
-                # Store results in session state
-                st.session_state.processing_results = pd.DataFrame(results)
-
-                # Show completion message
-                if quota_exceeded:
-                    # Count how many were successfully sent
-                    sent_count = len([r for r in results if r['Status'] == 'Sent'])
-                    remaining_count = len(df) - sent_count
-                    st.error(f"⚠️ Gmail daily sending limit reached!")
-                    st.warning(f"📊 Sent: {sent_count} | Remaining: {remaining_count}")
-                    st.info("💡 Wait 24 hours and re-run to send remaining payslips, or upload an Excel with only the remaining employees.")
-                elif dry_run:
-                    st.success(f"✅ Dry run completed! PDFs saved to: {st.session_state.temp_dir}")
-                else:
-                    st.success("✅ Processing completed!")
-                st.rerun()
-
-        else:
-            st.error("❌ Excel file validation failed!")
-            st.write("")  # Add spacing
-
-            # Check if there are missing column errors
-            has_missing_columns = any("Missing required columns:" in error for error in validation_errors)
-
-            if has_missing_columns:
-                st.warning("**Column Name Mismatch Detected**")
-                st.write("Your Excel file is missing required columns. Please ensure column names match EXACTLY (case-sensitive).")
-                st.write("")
-
-            # Display errors
-            for error in validation_errors:
-                if "Missing required columns:" in error:
-                    # Extract column names from error message
-                    missing_cols = error.replace("Missing required columns: ", "")
-                    st.error(f"**Missing columns:** {missing_cols}")
-                else:
-                    st.error(f"• {error}")
-
-            # Show helpful instructions
-            if has_missing_columns:
-                st.write("")
-                st.info("💡 **How to fix:**\n"
-                       "1. Download the Excel template from the sidebar (📥 Download Templates)\n"
-                       "2. Compare your column names with the template\n"
-                       "3. Rename your columns to match exactly\n"
-                       "4. Column names are case-sensitive (e.g., 'EmployeeNumber' not 'Employee Number')")
-
-            st.write("")
-
-    except Exception as e:
-        st.error(f"❌ Error loading file: {str(e)}")
-
-# Display results if available
-if st.session_state.processing_results is not None:
-    results_df = st.session_state.processing_results
-
-    # Results (collapsible)
-    with st.expander("📋 Results", expanded=True):
-        # Results summary
-        col1, col2, col3 = st.columns(3)
-        with col1:
-            success_count = len(results_df[results_df['Status'].isin(['Sent', 'Generated'])])
-            st.metric("✅ Successful", success_count)
-        with col2:
-            failed_count = len(results_df[results_df['Status'] == 'Failed'])
-            st.metric("❌ Failed", failed_count)
-        with col3:
-            error_count = len(results_df[results_df['Status'] == 'Error'])
-            st.metric("⚠️ Errors", error_count)
-
-        # Display results without PDF path column
-        display_df = results_df[['Employee', 'Email', 'Status', 'Message']].copy()
-        st.dataframe(display_df, width='stretch')
-
-        # Download options
-        col1, col2, col3 = st.columns(3)
-
-        with col1:
-            # Download results as CSV
-            csv = results_df[['Employee', 'Email', 'Status', 'Message']].to_csv(index=False)
-            st.download_button(
-                label="📄 CSV",
-                data=csv,
-                file_name="payslip_results.csv",
-                mime="text/csv",
-                width='stretch'
-            )
-
-        with col2:
-            # Download all PDFs as ZIP
-            if st.button("📦 ZIP", width='stretch'):
-                # Create ZIP file
-                zip_buffer = io.BytesIO()
-                with zipfile.ZipFile(zip_buffer, 'w', zipfile.ZIP_DEFLATED) as zip_file:
-                    for _, result in results_df.iterrows():
-                        if result['PDF'] and Path(result['PDF']).exists():
-                            zip_file.write(
-                                result['PDF'],
-                                arcname=Path(result['PDF']).name
-                            )
-
-                st.download_button(
-                    label="💾 Download",
-                    data=zip_buffer.getvalue(),
-                    file_name="payslips.zip",
-                    mime="application/zip",
-                    width='stretch'
-                )
-
-        with col3:
-            # Clear results and temp files
-            if st.button("🗑️ Clear", width='stretch'):
-                # Clean up temp directory (but not if it's a user-specified dry-run directory)
-                if st.session_state.temp_dir:
-                    # Only auto-cleanup if it's in system temp (not user's dry-run directory)
-                    if str(Path(st.session_state.temp_dir).parent) == tempfile.gettempdir():
-                        cleanup_temp_dir(st.session_state.temp_dir)
-                    st.session_state.temp_dir = None
-
-                # Clear results
-                st.session_state.processing_results = None
-                st.rerun()
+with tab3:
+    render_allowance_tab()

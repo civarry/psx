@@ -55,13 +55,14 @@ class EmailSender:
                 pass  # Ignore errors when closing
             self.smtp = None
 
-    def send_payslip(self, row, pdf_path: str) -> Tuple[bool, str, bool]:
+    def send_document(self, row, pdf_path: str, document_type: str = "Payslip") -> Tuple[bool, str, bool]:
         """
-        Send payslip email with PDF attachment
+        Send document email with PDF attachment
 
         Args:
-            row: pandas Series with employee data (must have Email, Name, PayrollPeriod columns)
+            row: pandas Series with employee data (must have Email, Name, and Period columns)
             pdf_path: Path to PDF file
+            document_type: Type of document (Payslip, Excess OT, Allowance)
 
         Returns:
             Tuple[bool, str, bool]: (success, message, quota_exceeded)
@@ -81,16 +82,23 @@ class EmailSender:
             # Build email message
             to_email = row["Email"]
             name = row["Name"]
-            period = row["PayrollPeriod"]
+
+            # Get period field based on document type
+            if "PayrollPeriod" in row.index:
+                period = row["PayrollPeriod"]
+            elif "Period" in row.index:
+                period = row["Period"]
+            else:
+                period = "current period"
 
             msg = EmailMessage()
-            msg["Subject"] = f"Payslip for {period}"
+            msg["Subject"] = f"{document_type} for {period}"
             msg["From"] = self.email
             msg["To"] = to_email
 
             body = (
                 f"Hi {name},\n\n"
-                f"Please find attached your payslip for {period}.\n\n"
+                f"Please find attached your {document_type.lower()} for {period}.\n\n"
                 "This is a system-generated email. If you have any questions, "
                 "please contact HR.\n\n"
                 "Best regards,\n"
@@ -124,3 +132,16 @@ class EmailSender:
             return False, f"SMTP error: {str(e)}", False
         except Exception as e:
             return False, f"Error: {str(e)}", False
+
+    def send_payslip(self, row, pdf_path: str) -> Tuple[bool, str, bool]:
+        """
+        Send payslip email with PDF attachment (backward compatibility)
+
+        Args:
+            row: pandas Series with employee data
+            pdf_path: Path to PDF file
+
+        Returns:
+            Tuple[bool, str, bool]: (success, message, quota_exceeded)
+        """
+        return self.send_document(row, pdf_path, "Payslip")

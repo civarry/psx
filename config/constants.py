@@ -1,7 +1,14 @@
 """Configuration constants for payslip automation"""
 
-# Required Excel columns for validation
-REQUIRED_COLUMNS = [
+# Document Types
+DOCUMENT_TYPES = {
+    'PAYSLIP': 'Payslip',
+    'EXCESS_OT': 'Excess OT',
+    'ALLOWANCE': 'Allowance'
+}
+
+# Required Excel columns for PAYSLIP
+PAYSLIP_REQUIRED_COLUMNS = [
     # Employee Info
     'EmployeeNumber', 'Name', 'Position', 'Email', 'PayrollPeriod',
 
@@ -31,6 +38,37 @@ REQUIRED_COLUMNS = [
     'AdjustmentDeductions', 'OthersDeductions',
     'TotalDeductions', 'NetPay'
 ]
+
+# Required Excel columns for EXCESS OT
+EXCESS_OT_REQUIRED_COLUMNS = [
+    # Employee Info
+    'Period', 'Name',
+
+    # Hours
+    'RH Hours', 'ND Hours', 'ROT Hours',
+    'Sunday/SPH Hours', 'Sunday/SPH OT Hours', 'Sunday/SPH ND Hours',
+
+    # Pay
+    'RH Pay', 'ND Pay', 'ROT Pay',
+    'Sunday/SPH Pay', 'Sunday/SPH OT Pay', 'Sunday/SPH ND Pay',
+
+    # Totals
+    'Adjustment', 'Total Pay'
+]
+
+# Optional columns for EXCESS OT
+EXCESS_OT_OPTIONAL_COLUMNS = ['Email', 'Statement']
+
+# Required Excel columns for ALLOWANCE
+ALLOWANCE_REQUIRED_COLUMNS = [
+    'Period', 'EMP ID NO', 'Name', 'Department', 'Total Pay'
+]
+
+# Optional columns for ALLOWANCE
+ALLOWANCE_OPTIONAL_COLUMNS = ['Email']
+
+# Backward compatibility - keep for existing code
+REQUIRED_COLUMNS = PAYSLIP_REQUIRED_COLUMNS
 
 # SMTP Configuration
 SMTP_SERVER = "smtp.gmail.com"

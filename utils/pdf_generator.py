@@ -266,3 +266,261 @@ def create_payslip_pdf(row, output_dir, logo_path=None, company_config=None):
     c.save()
 
     return file_path
+
+
+def create_excess_ot_pdf(row, output_dir, logo_path=None, company_config=None):
+    """
+    Generate an Excess OT PDF for a single employee
+
+    Args:
+        row: pandas Series with employee data
+        output_dir: Directory to save the PDF
+        logo_path: Path to company logo image (optional)
+        company_config: Dict with company details (optional)
+
+    Returns:
+        str: Path to generated PDF file
+    """
+    from reportlab.lib.pagesizes import A4
+    from reportlab.lib.units import inch
+    from reportlab.platypus import Table, TableStyle
+    from reportlab.lib import colors
+
+    # Create output directory if it doesn't exist
+    Path(output_dir).mkdir(parents=True, exist_ok=True)
+
+    # Extract employee data
+    name = str(row["Name"])
+    period = str(row["Period"])
+
+    # Create safe filename
+    safe_period = period.replace(" ", "_").replace("/", "-").replace(",", "")
+    safe_name = name.replace(" ", "_").replace(",", "")
+    filename = f"excess_ot_{safe_name}_{safe_period}.pdf"
+    file_path = os.path.join(output_dir, filename)
+
+    # Get company configuration or use defaults
+    if company_config is None:
+        company_config = {}
+
+    company_name = company_config.get("company_name", "MASSPOWER PHILIPPINES ELECTRONIC INC.")
+
+    # Create PDF (Portrait orientation)
+    c = canvas.Canvas(file_path, pagesize=A4)
+    width, height = A4
+
+    # Margins
+    left = 50
+    right = width - 50
+    top = height - 50
+    y = top
+
+    # ---------- HEADER ----------
+    if logo_path and os.path.exists(logo_path):
+        logo_w = 80
+        logo_h = 40
+        c.drawImage(
+            logo_path,
+            (width - logo_w) / 2,
+            y - logo_h,
+            logo_w,
+            logo_h,
+            preserveAspectRatio=True,
+            mask="auto",
+        )
+        y -= logo_h + 15
+
+    # Company name
+    c.setFont("Helvetica-Bold", 12)
+    c.drawCentredString(width / 2, y, company_name)
+    y -= 20
+
+    # Document title
+    c.setFont("Helvetica-Bold", 11)
+    c.drawCentredString(width / 2, y, "EXCESS OVERTIME")
+    y -= 25
+
+    # Period
+    c.setFont("Helvetica", 10)
+    c.drawCentredString(width / 2, y, period)
+    y -= 25
+
+    # Employee name
+    c.setFont("Helvetica-Bold", 11)
+    c.drawCentredString(width / 2, y, name)
+    y -= 35
+
+    # ---------- OT TABLE ----------
+    table_data = [
+        ['', 'HOURS', 'AMOUNT'],
+        ['RH', f"{get_safe(row, 'RH Hours', 0):.2f}", f"{get_safe(row, 'RH Pay', 0):.2f}"],
+        ['ND', f"{get_safe(row, 'ND Hours', 0):.2f}", f"{get_safe(row, 'ND Pay', 0):.2f}"],
+        ['ROT', f"{get_safe(row, 'ROT Hours', 0):.2f}", f"{get_safe(row, 'ROT Pay', 0):.2f}"],
+        ['SUNDAY', f"{get_safe(row, 'Sunday/SPH Hours', 0):.2f}", f"{get_safe(row, 'Sunday/SPH Pay', 0):.2f}"],
+        ['SUNDAY/SPH', f"{get_safe(row, 'Sunday/SPH Hours', 0):.2f}", f"{get_safe(row, 'Sunday/SPH Pay', 0):.2f}"],
+        ['SUNDAY\nOT/SPH', f"{get_safe(row, 'Sunday/SPH OT Hours', 0):.2f}", f"{get_safe(row, 'Sunday/SPH OT Pay', 0):.2f}"],
+        ['SUNDAY/SPH\nND', f"{get_safe(row, 'Sunday/SPH ND Hours', 0):.2f}", f"{get_safe(row, 'Sunday/SPH ND Pay', 0):.2f}"],
+        ['ADJ.', '', f"{get_safe(row, 'Adjustment', 0):.2f}"],
+        ['', '', ''],
+        ['', 'Total Pay', f"{get_safe(row, 'Total Pay', 0):.2f}"],
+    ]
+
+    # Draw table manually for better control
+    table_left = left + 50
+    table_width = right - left - 100
+    col_widths = [table_width * 0.3, table_width * 0.35, table_width * 0.35]
+
+    # Draw table headers
+    c.setFont("Helvetica-Bold", 10)
+    c.rect(table_left, y - 25, col_widths[0], 25)
+    c.rect(table_left + col_widths[0], y - 25, col_widths[1], 25)
+    c.rect(table_left + col_widths[0] + col_widths[1], y - 25, col_widths[2], 25)
+
+    c.drawCentredString(table_left + col_widths[0] / 2, y - 17, '')
+    c.drawCentredString(table_left + col_widths[0] + col_widths[1] / 2, y - 17, 'HOURS')
+    c.drawCentredString(table_left + col_widths[0] + col_widths[1] + col_widths[2] / 2, y - 17, 'AMOUNT')
+    y -= 25
+
+    # Draw table rows
+    c.setFont("Helvetica", 9)
+    row_height = 25
+    for i, data_row in enumerate(table_data[1:], 1):
+        # Draw borders
+        c.rect(table_left, y - row_height, col_widths[0], row_height)
+        c.rect(table_left + col_widths[0], y - row_height, col_widths[1], row_height)
+        c.rect(table_left + col_widths[0] + col_widths[1], y - row_height, col_widths[2], row_height)
+
+        # Handle multiline labels
+        if '\n' in data_row[0]:
+            lines = data_row[0].split('\n')
+            for j, line in enumerate(lines):
+                c.drawString(table_left + 5, y - 12 - (j * 10), line)
+        else:
+            if i == len(table_data) - 1:  # Total Pay row
+                c.setFont("Helvetica-Bold", 10)
+            c.drawString(table_left + 5, y - 15, data_row[0])
+
+        # Hours column
+        c.setFont("Helvetica", 9)
+        c.drawRightString(table_left + col_widths[0] + col_widths[1] - 5, y - 15, data_row[1])
+
+        # Amount column
+        if i == len(table_data) - 1:  # Total Pay row
+            c.setFont("Helvetica-Bold", 10)
+        c.drawRightString(table_left + col_widths[0] + col_widths[1] + col_widths[2] - 5, y - 15, data_row[2])
+
+        y -= row_height
+
+    c.showPage()
+    c.save()
+
+    return file_path
+
+
+def create_allowance_pdf(row, output_dir, logo_path=None, company_config=None):
+    """
+    Generate an Allowance PDF for a single employee
+
+    Args:
+        row: pandas Series with employee data
+        output_dir: Directory to save the PDF
+        logo_path: Path to company logo image (optional)
+        company_config: Dict with company details (optional)
+
+    Returns:
+        str: Path to generated PDF file
+    """
+    # Create output directory if it doesn't exist
+    Path(output_dir).mkdir(parents=True, exist_ok=True)
+
+    # Extract employee data
+    emp_id = str(row["EMP ID NO"])
+    name = str(row["Name"])
+    period = str(row["Period"])
+    department = str(row["Department"])
+    total_pay = get_safe(row, "Total Pay", 0)
+
+    # Create safe filename
+    safe_period = period.replace(" ", "_").replace("/", "-").replace(",", "")
+    filename = f"allowance_{emp_id}_{safe_period}.pdf"
+    file_path = os.path.join(output_dir, filename)
+
+    # Get company configuration or use defaults
+    if company_config is None:
+        company_config = {}
+
+    company_name = company_config.get("company_name", "MASSPOWER PHILIPPINES ELECTRONIC INC.")
+
+    # Create PDF (Portrait orientation)
+    c = canvas.Canvas(file_path, pagesize=A4)
+    width, height = A4
+
+    # Margins
+    left = 50
+    right = width - 50
+    top = height - 50
+    y = top
+
+    # ---------- HEADER ----------
+    if logo_path and os.path.exists(logo_path):
+        logo_w = 80
+        logo_h = 40
+        c.drawImage(
+            logo_path,
+            (width - logo_w) / 2,
+            y - logo_h,
+            logo_w,
+            logo_h,
+            preserveAspectRatio=True,
+            mask="auto",
+        )
+        y -= logo_h + 15
+
+    # Company name
+    c.setFont("Helvetica-Bold", 12)
+    c.drawCentredString(width / 2, y, company_name)
+    y -= 20
+
+    # Document title
+    c.setFont("Helvetica-Bold", 11)
+    c.drawCentredString(width / 2, y, "ALLOWANCE")
+    y -= 30
+
+    # Period
+    c.setFont("Helvetica", 10)
+    c.drawCentredString(width / 2, y, period)
+    y -= 50
+
+    # Employee details box
+    box_left = left + 80
+    box_width = right - left - 160
+    box_height = 120
+
+    # Employee ID
+    c.setFont("Helvetica", 10)
+    c.drawCentredString(width / 2, y, emp_id)
+
+    # Name
+    y -= 30
+    c.setFont("Helvetica-Bold", 12)
+    c.drawCentredString(width / 2, y, name)
+
+    # Department
+    y -= 25
+    c.setFont("Helvetica", 10)
+    c.drawCentredString(width / 2, y, department)
+
+    # Total Pay (large, centered, underlined)
+    y -= 35
+    c.setFont("Helvetica-Bold", 16)
+    total_pay_str = f"{total_pay:,.2f}"
+    c.drawCentredString(width / 2, y, total_pay_str)
+
+    # Underline
+    text_width = c.stringWidth(total_pay_str, "Helvetica-Bold", 16)
+    c.line(width / 2 - text_width / 2, y - 2, width / 2 + text_width / 2, y - 2)
+
+    c.showPage()
+    c.save()
+
+    return file_path
