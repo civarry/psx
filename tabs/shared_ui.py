@@ -77,7 +77,7 @@ def render_data_preview(df, required_columns):
 
     # Display preview
     with st.expander("Data Preview", expanded=True):
-        st.dataframe(df.head(10), use_container_width=True)
+        st.dataframe(df.head(10), width='stretch')
 
     return True, []
 
@@ -276,7 +276,7 @@ def render_results(results_df, dry_run=False, document_type=""):
 
     # Display results table
     st.subheader("Detailed Results")
-    st.dataframe(results_df, use_container_width=True)
+    st.dataframe(results_df, width='stretch')
 
     # Export options
     col1, col2 = st.columns(2)

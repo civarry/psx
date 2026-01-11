@@ -146,7 +146,7 @@ with st.sidebar:
                         mime="application/json",
                         type="primary",
                         help="Download template to fill in your company details",
-                        use_container_width=True
+                        width='stretch'
                     )
 
         # Excel templates
@@ -165,7 +165,7 @@ with st.sidebar:
                         mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
                         type="primary",
                         help="Download Excel template for payroll data",
-                        use_container_width=True
+                        width='stretch'
                     )
 
             # Excess OT template
@@ -179,7 +179,7 @@ with st.sidebar:
                         mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
                         type="primary",
                         help="Download Excel template for excess overtime data",
-                        use_container_width=True
+                        width='stretch'
                     )
 
             # Allowance template
@@ -193,7 +193,7 @@ with st.sidebar:
                         mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
                         type="primary",
                         help="Download Excel template for allowance data",
-                        use_container_width=True
+                        width='stretch'
                     )
 
     # Settings Section
@@ -207,7 +207,7 @@ with st.sidebar:
                 st.caption("**Company:** " + st.session_state.company_name)
                 st.caption("**Email:** " + st.session_state.smtp_email)
 
-                if st.button("Clear Configuration", help="Clear configuration", use_container_width=True):
+                if st.button("Clear Configuration", help="Clear configuration", width='stretch'):
                     st.session_state.company_name = ""
                     st.session_state.footer_text = ""
                     st.session_state.document_id = ""
@@ -268,7 +268,7 @@ with st.sidebar:
             if has_custom_logo:
                 st.caption("**Status:** Custom logo uploaded")
 
-                if st.button("Clear Logo", help="Remove custom logo", use_container_width=True):
+                if st.button("Clear Logo", help="Remove custom logo", width='stretch'):
                     st.session_state.company_logo_path = 'assets/logo.png'
                     st.rerun()
             else:
