@@ -96,6 +96,26 @@ hide_style = """
 
     /* Hide the Streamlit header (top bar) */
     header {visibility: hidden;}
+
+    /* Hide the app creator avatar */
+    [data-testid="appCreatorAvatar"] {display: none !important;}
+    div._profilePreview_gzau3_63 {display: none !important;}
+
+    /* Hide the Streamlit logo link */
+    div._link_gzau3_10 {display: none !important;}
+
+    /* Hide main menu button */
+    #MainMenu {visibility: hidden;}
+
+    /* Hide footer completely */
+    footer:after {
+        content: '';
+        display: none;
+    }
+
+    /* Additional hiding for Streamlit branding */
+    .viewerBadge_container__1QSob {display: none !important;}
+    .viewerBadge_link__1S137 {display: none !important;}
     </style>
 """
 st.markdown(hide_style, unsafe_allow_html=True)
