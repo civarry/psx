@@ -19,6 +19,8 @@ ENV/
 # Data files - exclude actual payroll data but keep templates
 *.xlsx
 !templates/payroll_template.xlsx
+!templates/excess_ot_template.xlsx
+!templates/allowance_template.xlsx
 payslips/
 *.pdf
 
