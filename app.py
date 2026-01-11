@@ -97,12 +97,16 @@ hide_style = """
     /* Hide the Streamlit header (top bar) */
     header {visibility: hidden;}
 
-    /* Hide the app creator avatar */
+    /* Hide the app creator avatar and profile container */
     [data-testid="appCreatorAvatar"] {display: none !important;}
+    div._profileContainer_gzau3_53 {display: none !important;}
     div._profilePreview_gzau3_63 {display: none !important;}
+    div._profileImage_gzau3_78 {display: none !important;}
 
-    /* Hide the Streamlit logo link */
+    /* Hide the Streamlit logo link and container */
     div._link_gzau3_10 {display: none !important;}
+    a._container_gzau3_1 {display: none !important;}
+    a._viewerBadge_nim44_23 {display: none !important;}
 
     /* Hide main menu button */
     #MainMenu {visibility: hidden;}
@@ -113,9 +117,15 @@ hide_style = """
         display: none;
     }
 
-    /* Additional hiding for Streamlit branding */
-    .viewerBadge_container__1QSob {display: none !important;}
-    .viewerBadge_link__1S137 {display: none !important;}
+    /* Additional hiding for Streamlit branding - use wildcard for dynamic classes */
+    [class*="_profileContainer"] {display: none !important;}
+    [class*="_profilePreview"] {display: none !important;}
+    [class*="_profileImage"] {display: none !important;}
+    [class*="_viewerBadge"] {display: none !important;}
+    [class*="_container_gzau3"] a {display: none !important;}
+
+    /* Hide any SVG logo */
+    a[href*="streamlit.io"] {display: none !important;}
     </style>
 """
 st.markdown(hide_style, unsafe_allow_html=True)
