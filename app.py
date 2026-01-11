@@ -82,55 +82,6 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
-# Hide Streamlit branding elements
-hide_style = """
-    <style>
-    /* Hide the GitHub icon in the upper right */
-    #GithubIcon {visibility: hidden;}
-
-    /* Hide the "Fork" and other toolbar buttons */
-    [data-testid="stToolbar"] {visibility: hidden;}
-
-    /* Hide the "Hosted with Streamlit" footer */
-    footer {visibility: hidden;}
-
-    /* Hide the Streamlit header (top bar) */
-    header {visibility: hidden;}
-
-    /* Hide the app creator avatar and profile container */
-    [data-testid="appCreatorAvatar"] {display: none !important;}
-    div._profileContainer_gzau3_53 {display: none !important;}
-    div._profilePreview_gzau3_63 {display: none !important;}
-    div._profileImage_gzau3_78 {display: none !important;}
-
-    /* Hide the Streamlit logo link and container */
-    div._link_gzau3_10 {display: none !important;}
-    a._container_gzau3_1 {display: none !important;}
-    a._viewerBadge_nim44_23 {display: none !important;}
-
-    /* Hide main menu button */
-    #MainMenu {visibility: hidden;}
-
-    /* Hide footer completely */
-    footer:after {
-        content: '';
-        display: none;
-    }
-
-    /* Additional hiding for Streamlit branding - use wildcard for dynamic classes */
-    [class*="_profileContainer"] {display: none !important;}
-    [class*="_profilePreview"] {display: none !important;}
-    [class*="_profileImage"] {display: none !important;}
-    [class*="_viewerBadge"] {display: none !important;}
-    [class*="_container_gzau3"] a {display: none !important;}
-
-    /* Hide any SVG logo */
-    a[href*="streamlit.io"] {display: none !important;}
-    </style>
-"""
-st.markdown(hide_style, unsafe_allow_html=True)
-
-
 # ---------- SESSION STATE INITIALIZATION ----------
 
 def init_session_state():
