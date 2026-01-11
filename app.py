@@ -1,5 +1,5 @@
 """
-Document Automation System - Streamlit Application
+Payroll System - Streamlit Application
 Generate and email payslips, excess OT, and allowance documents automatically from Excel data
 """
 
@@ -77,10 +77,28 @@ def cleanup_on_exit():
 # ---------- PAGE CONFIGURATION ----------
 
 st.set_page_config(
-    page_title="Document Automation System",
+    page_title="Payroll System",
     layout="wide",
     initial_sidebar_state="expanded"
 )
+
+# Hide Streamlit branding elements
+hide_style = """
+    <style>
+    /* Hide the GitHub icon in the upper right */
+    #GithubIcon {visibility: hidden;}
+
+    /* Hide the "Fork" and other toolbar buttons */
+    [data-testid="stToolbar"] {visibility: hidden;}
+
+    /* Hide the "Hosted with Streamlit" footer */
+    footer {visibility: hidden;}
+
+    /* Hide the Streamlit header (top bar) */
+    header {visibility: hidden;}
+    </style>
+"""
+st.markdown(hide_style, unsafe_allow_html=True)
 
 
 # ---------- SESSION STATE INITIALIZATION ----------
@@ -128,7 +146,7 @@ init_session_state()
 # ---------- SIDEBAR ----------
 
 with st.sidebar:
-    st.title("Document Automation")
+    st.title("Payroll System")
 
     # Templates Section
     with st.expander("Download Templates", expanded=False):
