@@ -4,7 +4,6 @@ Generate and email payslips, excess OT, and allowance documents automatically fr
 """
 
 import streamlit as st
-import streamlit.components.v1 as components
 import tempfile
 import shutil
 import atexit
@@ -90,6 +89,11 @@ st.markdown("""
     /* Hide Fork button and GitHub icon (toolbar action buttons) */
     [data-testid="stToolbarActionButton"] {
         display: none !important;
+    }
+
+    /* Hide footer */
+    footer {
+        visibility: hidden !important;
     }
 
     /* Hide profile preview */
