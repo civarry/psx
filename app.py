@@ -272,25 +272,40 @@ with st.sidebar:
                 # Load config if uploaded
                 if config_file is not None:
                     try:
-                        config_data = json.load(config_file)
+                        # Read raw bytes and try multiple encodings
+                        raw_bytes = config_file.read()
+                        content = None
 
-                        # Validate SMTP nested structure
-                        smtp_config = config_data.get('smtp', {})
-                        if not smtp_config.get('email') or not smtp_config.get('password'):
-                            st.error("SMTP configuration incomplete. Both email and password are required.")
+                        # Try encodings in order of preference
+                        for encoding in ['utf-8', 'utf-8-sig', 'cp1252', 'latin-1']:
+                            try:
+                                content = raw_bytes.decode(encoding)
+                                break
+                            except UnicodeDecodeError:
+                                continue
+
+                        if content is None:
+                            st.error("Unable to read file. Please save the file with UTF-8 encoding.")
                         else:
-                            # Load company details
-                            st.session_state.company_name = config_data.get('company_name', '')
-                            st.session_state.footer_text = config_data.get('footer_text', '')
-                            st.session_state.document_id = config_data.get('document_id', '')
-                            st.session_state.effectivity_date = config_data.get('effectivity_date', '')
+                            config_data = json.loads(content)
 
-                            # Load SMTP credentials
-                            st.session_state.smtp_email = smtp_config.get('email', '')
-                            st.session_state.smtp_password = smtp_config.get('password', '')
+                            # Validate SMTP nested structure
+                            smtp_config = config_data.get('smtp', {})
+                            if not smtp_config.get('email') or not smtp_config.get('password'):
+                                st.error("SMTP configuration incomplete. Both email and password are required.")
+                            else:
+                                # Load company details
+                                st.session_state.company_name = config_data.get('company_name', '')
+                                st.session_state.footer_text = config_data.get('footer_text', '')
+                                st.session_state.document_id = config_data.get('document_id', '')
+                                st.session_state.effectivity_date = config_data.get('effectivity_date', '')
 
-                            st.session_state.config_loaded = True
-                            st.rerun()
+                                # Load SMTP credentials
+                                st.session_state.smtp_email = smtp_config.get('email', '')
+                                st.session_state.smtp_password = smtp_config.get('password', '')
+
+                                st.session_state.config_loaded = True
+                                st.rerun()
 
                     except json.JSONDecodeError:
                         st.error("Invalid JSON file. Please check the file format.")
