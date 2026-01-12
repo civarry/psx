@@ -397,58 +397,63 @@ with tab3:
 # This runs at the end to ensure elements are loaded
 components.html("""
 <script>
-    console.log('[Streamlit Branding Hider] Script started');
+    console.log('[Branding Hider] Script started');
 
-    // Inject CSS into parent document
+    // Debug: Log all links in parent document after 3 seconds
+    setTimeout(() => {
+        console.log('[Branding Hider] === DEBUG: Scanning parent document ===');
+
+        // Check all links
+        const allLinks = window.parent.document.querySelectorAll('a');
+        console.log('[Branding Hider] Total links found:', allLinks.length);
+
+        allLinks.forEach(a => {
+            if (a.href && a.href.includes('streamlit')) {
+                console.log('[Branding Hider] Streamlit link:', a.href, a);
+            }
+        });
+
+        // Check all elements with class containing underscore (CSS modules style)
+        const allElements = window.parent.document.querySelectorAll('*');
+        allElements.forEach(el => {
+            if (el.className && typeof el.className === 'string') {
+                if (el.className.includes('_profile') || el.className.includes('_viewer') || el.className.includes('_badge')) {
+                    console.log('[Branding Hider] Found element:', el.className, el);
+                }
+            }
+        });
+
+        // Check for avatar
+        const avatars = window.parent.document.querySelectorAll('img[alt*="Avatar"]');
+        console.log('[Branding Hider] Avatars found:', avatars.length);
+        avatars.forEach(img => console.log('[Branding Hider] Avatar:', img));
+
+    }, 3000);
+
+    // Inject CSS
     const css = `
         [class*="_profilePreview_"] { display: none !important; }
         a[href*="streamlit.io/cloud"] { display: none !important; }
     `;
     const style = document.createElement('style');
     style.textContent = css;
-
     try {
         window.parent.document.head.appendChild(style);
-        console.log('[Streamlit Branding Hider] CSS injected');
+        console.log('[Branding Hider] CSS injected');
     } catch(e) {
-        console.log('[Streamlit Branding Hider] CSS injection failed:', e.message);
+        console.log('[Branding Hider] CSS failed:', e.message);
     }
 
-    // Function to hide elements
+    // Hide function
     function hideElements() {
         try {
-            let hidden = 0;
-            window.parent.document.querySelectorAll('[class*="_profilePreview_"]').forEach(el => {
-                if (el.style.display !== 'none') {
-                    el.style.display = 'none';
-                    hidden++;
-                }
-            });
-            window.parent.document.querySelectorAll('a[href*="streamlit.io/cloud"]').forEach(el => {
-                if (el.style.display !== 'none') {
-                    el.style.display = 'none';
-                    hidden++;
-                }
-            });
-            if (hidden > 0) {
-                console.log('[Streamlit Branding Hider] Hidden', hidden, 'elements');
-            }
+            window.parent.document.querySelectorAll('[class*="_profilePreview_"]').forEach(el => el.style.display = 'none');
+            window.parent.document.querySelectorAll('a[href*="streamlit.io/cloud"]').forEach(el => el.style.display = 'none');
+            window.parent.document.querySelectorAll('[class*="_viewerBadge_"]').forEach(el => el.style.display = 'none');
+            window.parent.document.querySelectorAll('img[alt*="Avatar"]').forEach(el => el.style.display = 'none');
         } catch(e) {}
     }
 
-    // Run immediately
-    hideElements();
-
-    // Poll every 500ms to catch dynamically loaded elements
     setInterval(hideElements, 500);
-
-    // Also use MutationObserver
-    try {
-        const observer = new MutationObserver(hideElements);
-        observer.observe(window.parent.document.body, { childList: true, subtree: true });
-        console.log('[Streamlit Branding Hider] MutationObserver active');
-    } catch(e) {
-        console.log('[Streamlit Branding Hider] MutationObserver failed:', e.message);
-    }
 </script>
 """, height=0, scrolling=False)
