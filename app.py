@@ -399,7 +399,7 @@ components.html("""
 <script>
     console.log('[Streamlit Branding Hider] Script started');
 
-    // Inject CSS into parent document to hide Streamlit Cloud branding
+    // Inject CSS into parent document
     const css = `
         [class*="_profilePreview_"] { display: none !important; }
         a[href*="streamlit.io/cloud"] { display: none !important; }
@@ -407,25 +407,48 @@ components.html("""
     const style = document.createElement('style');
     style.textContent = css;
 
-    // Try to inject into parent document
     try {
         window.parent.document.head.appendChild(style);
-        console.log('[Streamlit Branding Hider] CSS injected into parent document');
+        console.log('[Streamlit Branding Hider] CSS injected');
     } catch(e) {
-        console.log('[Streamlit Branding Hider] Parent access blocked:', e.message);
-        document.head.appendChild(style);
+        console.log('[Streamlit Branding Hider] CSS injection failed:', e.message);
     }
 
-    // Also try direct manipulation
+    // Function to hide elements
+    function hideElements() {
+        try {
+            let hidden = 0;
+            window.parent.document.querySelectorAll('[class*="_profilePreview_"]').forEach(el => {
+                if (el.style.display !== 'none') {
+                    el.style.display = 'none';
+                    hidden++;
+                }
+            });
+            window.parent.document.querySelectorAll('a[href*="streamlit.io/cloud"]').forEach(el => {
+                if (el.style.display !== 'none') {
+                    el.style.display = 'none';
+                    hidden++;
+                }
+            });
+            if (hidden > 0) {
+                console.log('[Streamlit Branding Hider] Hidden', hidden, 'elements');
+            }
+        } catch(e) {}
+    }
+
+    // Run immediately
+    hideElements();
+
+    // Poll every 500ms to catch dynamically loaded elements
+    setInterval(hideElements, 500);
+
+    // Also use MutationObserver
     try {
-        const profiles = window.parent.document.querySelectorAll('[class*="_profilePreview_"]');
-        const badges = window.parent.document.querySelectorAll('a[href*="streamlit.io/cloud"]');
-        console.log('[Streamlit Branding Hider] Found profiles:', profiles.length, 'badges:', badges.length);
-        profiles.forEach(el => el.style.display = 'none');
-        badges.forEach(el => el.style.display = 'none');
-        console.log('[Streamlit Branding Hider] Elements hidden via JS');
+        const observer = new MutationObserver(hideElements);
+        observer.observe(window.parent.document.body, { childList: true, subtree: true });
+        console.log('[Streamlit Branding Hider] MutationObserver active');
     } catch(e) {
-        console.log('[Streamlit Branding Hider] Direct manipulation blocked:', e.message);
+        console.log('[Streamlit Branding Hider] MutationObserver failed:', e.message);
     }
 </script>
 """, height=0, scrolling=False)
