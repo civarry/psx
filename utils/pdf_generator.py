@@ -473,39 +473,39 @@ def create_allowance_pdf(row, output_dir, logo_path=None, company_config=None):
             preserveAspectRatio=True,
             mask="auto",
         )
-        y -= logo_h + 10
+        y -= logo_h + 5
 
     # Company name
     c.setFont("Helvetica-Bold", 10)
     c.drawCentredString(width / 2, y, company_name)
-    y -= 15
+    y -= 12
 
     # Document title
-    c.setFont("Helvetica-Bold", 10)
+    c.setFont("Helvetica-Bold", 9)
     c.drawCentredString(width / 2, y, "ALLOWANCE")
-    y -= 20
+    y -= 18
 
     # Period
     c.setFont("Helvetica", 9)
     c.drawCentredString(width / 2, y, period)
-    y -= 30
+    y -= 18
 
     # Employee ID
     c.setFont("Helvetica", 9)
     c.drawCentredString(width / 2, y, emp_id)
+    y -= 12
 
     # Name
-    y -= 20
     c.setFont("Helvetica-Bold", 11)
     c.drawCentredString(width / 2, y, name)
+    y -= 12
 
     # Department
-    y -= 18
     c.setFont("Helvetica", 9)
     c.drawCentredString(width / 2, y, department)
 
     # Total Pay (large, centered, underlined)
-    y -= 25
+    y -= 22
     c.setFont("Helvetica-Bold", 14)
     total_pay_str = f"{total_pay:,.2f}"
     c.drawCentredString(width / 2, y, total_pay_str)
