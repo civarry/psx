@@ -82,6 +82,27 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
+# ---------- HIDE STREAMLIT BRANDING ----------
+
+st.markdown("""
+<style>
+    /* Hide Fork button and GitHub icon (toolbar action buttons) */
+    [data-testid="stToolbarActionButton"] {
+        display: none !important;
+    }
+
+    /* Hide profile preview / app creator avatar */
+    [class*="_profilePreview_"] {
+        display: none !important;
+    }
+
+    /* Hide Streamlit Cloud badge */
+    [class*="_viewerBadge_"] {
+        display: none !important;
+    }
+</style>
+""", unsafe_allow_html=True)
+
 # ---------- SESSION STATE INITIALIZATION ----------
 
 def init_session_state():
