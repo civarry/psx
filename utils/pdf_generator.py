@@ -3,7 +3,7 @@
 import os
 from pathlib import Path
 from reportlab.pdfgen import canvas
-from reportlab.lib.pagesizes import landscape, A4, A5
+from reportlab.lib.pagesizes import landscape, A4, A6
 from textwrap import wrap
 
 
@@ -95,8 +95,8 @@ def create_payslip_pdf(row, output_dir, logo_path=None, company_config=None):
         )
         y -= logo_h + 20
 
-    c.setFont("Helvetica-Bold", 14)
-    c.drawCentredString(width / 2, y, company_name)
+    c.setFont("Times-Bold", 12)
+    c.drawCentredString(width / 2, y, company_name.upper())
     y -= 30
 
     # ---------- TOP INFO TABLE ----------
@@ -331,12 +331,12 @@ def create_excess_ot_pdf(row, output_dir, logo_path=None, company_config=None):
         y -= logo_h + 15
 
     # Company name
-    c.setFont("Helvetica-Bold", 12)
-    c.drawCentredString(width / 2, y, company_name)
-    y -= 20
+    c.setFont("Times-Bold", 11)
+    c.drawCentredString(width / 2, y, company_name.upper())
+    y -= 16
 
     # Document title
-    c.setFont("Helvetica-Bold", 11)
+    c.setFont("Helvetica", 11)
     c.drawCentredString(width / 2, y, "EXCESS OVERTIME")
     y -= 25
 
@@ -346,7 +346,7 @@ def create_excess_ot_pdf(row, output_dir, logo_path=None, company_config=None):
     y -= 25
 
     # Employee name
-    c.setFont("Helvetica-Bold", 11)
+    c.setFont("Helvetica-Bold", 12)
     c.drawCentredString(width / 2, y, name)
     y -= 35
 
@@ -451,21 +451,20 @@ def create_allowance_pdf(row, output_dir, logo_path=None, company_config=None):
 
     company_name = company_config.get("company_name", "MASSPOWER PHILIPPINES ELECTRONIC INC.")
 
-    # Create PDF (Landscape orientation)
-    page = landscape(A4)
+    # Create PDF (Landscape A5)
+    page = landscape(A6)
     c = canvas.Canvas(file_path, pagesize=page)
     width, height = page
 
     # Margins
-    left = 50
-    right = width - 50
-    top = height - 40
+    top = height - 30
     y = top
 
     # ---------- HEADER ----------
+    # Logo
     if logo_path and os.path.exists(logo_path):
-        logo_w = 80
-        logo_h = 40
+        logo_w = 85
+        logo_h = 42
         c.drawImage(
             logo_path,
             (width - logo_w) / 2,
@@ -475,46 +474,52 @@ def create_allowance_pdf(row, output_dir, logo_path=None, company_config=None):
             preserveAspectRatio=True,
             mask="auto",
         )
-        y -= logo_h + 15
+        y -= logo_h + 14
 
-    # Company name
-    c.setFont("Helvetica-Bold", 12)
-    c.drawCentredString(width / 2, y, company_name)
-    y -= 20
+    # Company name (SERIF, BOLD, ALL CAPS)
+    c.setFont("Times-Bold", 11)
+    c.drawCentredString(width / 2, y, company_name.upper())
+    y -= 16
 
-    # Document title
-    c.setFont("Helvetica-Bold", 11)
+    # Document title (SERIF, BOLD)
+    c.setFont("Helvetica", 11)
     c.drawCentredString(width / 2, y, "ALLOWANCE")
-    y -= 30
+    y -= 28
 
-    # Period
-    c.setFont("Helvetica", 10)
-    c.drawCentredString(width / 2, y, period)
-    y -= 50
 
-    # Employee ID
+    # Period (SANS, REGULAR)
     c.setFont("Helvetica", 10)
+    c.drawCentredString(width / 2, y, period.upper())
+    y -= 26
+
+    # Employee ID (SANS, REGULAR, slightly smaller)
+    c.setFont("Helvetica", 9)
     c.drawCentredString(width / 2, y, emp_id)
+    y -= 14
 
-    # Name
-    y -= 30
+    # Name (SANS, BOLD — strongest text)
     c.setFont("Helvetica-Bold", 12)
     c.drawCentredString(width / 2, y, name)
+    y -= 14
 
-    # Department
-    y -= 25
-    c.setFont("Helvetica", 10)
+    # Department (SANS, REGULAR)
+    c.setFont("Helvetica", 9.5)
     c.drawCentredString(width / 2, y, department)
+    y -= 30
 
-    # Total Pay (large, centered, underlined)
-    y -= 35
+    # Total Pay (SANS, BOLD, LARGE)
     c.setFont("Helvetica-Bold", 16)
     total_pay_str = f"{total_pay:,.2f}"
     c.drawCentredString(width / 2, y, total_pay_str)
 
     # Underline
     text_width = c.stringWidth(total_pay_str, "Helvetica-Bold", 16)
-    c.line(width / 2 - text_width / 2, y - 2, width / 2 + text_width / 2, y - 2)
+    c.line(
+        width / 2 - text_width / 2,
+        y - 3,
+        width / 2 + text_width / 2,
+        y - 3
+    )
 
     c.showPage()
     c.save()
