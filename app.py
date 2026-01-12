@@ -4,6 +4,7 @@ Generate and email payslips, excess OT, and allowance documents automatically fr
 """
 
 import streamlit as st
+import streamlit.components.v1 as components
 import tempfile
 import shutil
 import atexit
@@ -91,40 +92,36 @@ st.markdown("""
         display: none !important;
     }
 </style>
+""", unsafe_allow_html=True)
 
+# JavaScript to hide Streamlit Cloud branding (profile preview and badge)
+components.html("""
 <script>
-    // Function to hide Streamlit Cloud branding elements
     function hideStreamlitBranding() {
+        // Access parent document (main Streamlit app)
+        const parent = window.parent.document;
+
         // Hide profile preview
-        document.querySelectorAll('[class*="_profilePreview_"]').forEach(el => {
+        parent.querySelectorAll('[class*="_profilePreview_"]').forEach(el => {
             el.style.display = 'none';
         });
 
         // Hide Streamlit Cloud badge
-        document.querySelectorAll('a[href="https://streamlit.io/cloud"]').forEach(el => {
+        parent.querySelectorAll('a[href="https://streamlit.io/cloud"]').forEach(el => {
             el.style.display = 'none';
         });
 
         // Hide by class patterns
-        document.querySelectorAll('[class*="_viewerBadge_"]').forEach(el => {
+        parent.querySelectorAll('[class*="_viewerBadge_"]').forEach(el => {
             el.style.display = 'none';
         });
     }
 
-    // Run immediately
+    // Run immediately and periodically
     hideStreamlitBranding();
-
-    // Run after DOM loads
-    document.addEventListener('DOMContentLoaded', hideStreamlitBranding);
-
-    // Run periodically to catch dynamically loaded elements
-    setInterval(hideStreamlitBranding, 500);
-
-    // Also use MutationObserver to catch new elements
-    const observer = new MutationObserver(hideStreamlitBranding);
-    observer.observe(document.body, { childList: true, subtree: true });
+    setInterval(hideStreamlitBranding, 300);
 </script>
-""", unsafe_allow_html=True)
+""", height=0)
 
 # ---------- SESSION STATE INITIALIZATION ----------
 
