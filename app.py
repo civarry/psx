@@ -399,58 +399,57 @@ components.html("""
 <script>
     console.log('[Branding Hider] Script started');
 
-    // Debug: Log all links in parent document after 3 seconds
-    setTimeout(() => {
-        console.log('[Branding Hider] === DEBUG: Scanning parent document ===');
+    // Use window.top to access the top-level document (where branding elements are)
+    const topDoc = window.top.document;
 
-        // Check all links
-        const allLinks = window.parent.document.querySelectorAll('a');
-        console.log('[Branding Hider] Total links found:', allLinks.length);
+    // Debug: Scan top document after 3 seconds
+    setTimeout(() => {
+        console.log('[Branding Hider] === DEBUG: Scanning TOP document ===');
+
+        const allLinks = topDoc.querySelectorAll('a');
+        console.log('[Branding Hider] Total links:', allLinks.length);
 
         allLinks.forEach(a => {
-            if (a.href && a.href.includes('streamlit')) {
-                console.log('[Branding Hider] Streamlit link:', a.href, a);
+            if (a.href && a.href.includes('streamlit.io')) {
+                console.log('[Branding Hider] Streamlit.io link:', a.href, a);
             }
         });
 
-        // Check all elements with class containing underscore (CSS modules style)
-        const allElements = window.parent.document.querySelectorAll('*');
-        allElements.forEach(el => {
+        // Check for branding elements
+        topDoc.querySelectorAll('*').forEach(el => {
             if (el.className && typeof el.className === 'string') {
-                if (el.className.includes('_profile') || el.className.includes('_viewer') || el.className.includes('_badge')) {
-                    console.log('[Branding Hider] Found element:', el.className, el);
+                if (el.className.includes('_profile') || el.className.includes('_viewer') || el.className.includes('Badge')) {
+                    console.log('[Branding Hider] Found:', el.className, el);
                 }
             }
         });
 
-        // Check for avatar
-        const avatars = window.parent.document.querySelectorAll('img[alt*="Avatar"]');
-        console.log('[Branding Hider] Avatars found:', avatars.length);
-        avatars.forEach(img => console.log('[Branding Hider] Avatar:', img));
-
+        const avatars = topDoc.querySelectorAll('img[alt*="Avatar"]');
+        console.log('[Branding Hider] Avatars:', avatars.length);
     }, 3000);
 
-    // Inject CSS
+    // Inject CSS into top document
     const css = `
         [class*="_profilePreview_"] { display: none !important; }
         a[href*="streamlit.io/cloud"] { display: none !important; }
+        [class*="_viewerBadge_"] { display: none !important; }
     `;
     const style = document.createElement('style');
     style.textContent = css;
     try {
-        window.parent.document.head.appendChild(style);
-        console.log('[Branding Hider] CSS injected');
+        topDoc.head.appendChild(style);
+        console.log('[Branding Hider] CSS injected into TOP document');
     } catch(e) {
-        console.log('[Branding Hider] CSS failed:', e.message);
+        console.log('[Branding Hider] CSS injection failed:', e.message);
     }
 
-    // Hide function
+    // Hide function targeting top document
     function hideElements() {
         try {
-            window.parent.document.querySelectorAll('[class*="_profilePreview_"]').forEach(el => el.style.display = 'none');
-            window.parent.document.querySelectorAll('a[href*="streamlit.io/cloud"]').forEach(el => el.style.display = 'none');
-            window.parent.document.querySelectorAll('[class*="_viewerBadge_"]').forEach(el => el.style.display = 'none');
-            window.parent.document.querySelectorAll('img[alt*="Avatar"]').forEach(el => el.style.display = 'none');
+            topDoc.querySelectorAll('[class*="_profilePreview_"]').forEach(el => el.style.display = 'none');
+            topDoc.querySelectorAll('a[href*="streamlit.io/cloud"]').forEach(el => el.style.display = 'none');
+            topDoc.querySelectorAll('[class*="_viewerBadge_"]').forEach(el => el.style.display = 'none');
+            topDoc.querySelectorAll('img[alt*="Avatar"]').forEach(el => el.style.display = 'none');
         } catch(e) {}
     }
 
