@@ -92,12 +92,15 @@ st.markdown("""
     }
 
     /* Hide profile preview / app creator avatar */
-    [class*="_profilePreview_"] {
+    div[class*="_profilePreview_"],
+    [data-testid="appCreatorAvatar"] {
         display: none !important;
     }
 
     /* Hide Streamlit Cloud badge */
-    [class*="_viewerBadge_"] {
+    a[href="https://streamlit.io/cloud"],
+    a[class*="_viewerBadge_"],
+    a[class*="_container_gzau3"] {
         display: none !important;
     }
 </style>
