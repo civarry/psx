@@ -451,19 +451,21 @@ def create_allowance_pdf(row, output_dir, logo_path=None, company_config=None):
 
     company_name = company_config.get("company_name", "MASSPOWER PHILIPPINES ELECTRONIC INC.")
 
-    # Create PDF (Landscape A5)
-    page = landscape(A5)
+    # Create PDF (Landscape orientation)
+    page = landscape(A4)
     c = canvas.Canvas(file_path, pagesize=page)
     width, height = page
 
     # Margins
-    top = height - 30
+    left = 50
+    right = width - 50
+    top = height - 40
     y = top
 
     # ---------- HEADER ----------
     if logo_path and os.path.exists(logo_path):
-        logo_w = 60
-        logo_h = 30
+        logo_w = 80
+        logo_h = 40
         c.drawImage(
             logo_path,
             (width - logo_w) / 2,
@@ -473,45 +475,45 @@ def create_allowance_pdf(row, output_dir, logo_path=None, company_config=None):
             preserveAspectRatio=True,
             mask="auto",
         )
-        y -= logo_h + 5
+        y -= logo_h + 15
 
     # Company name
-    c.setFont("Helvetica-Bold", 10)
+    c.setFont("Helvetica-Bold", 12)
     c.drawCentredString(width / 2, y, company_name)
-    y -= 12
+    y -= 20
 
     # Document title
-    c.setFont("Helvetica-Bold", 9)
+    c.setFont("Helvetica-Bold", 11)
     c.drawCentredString(width / 2, y, "ALLOWANCE")
-    y -= 18
+    y -= 30
 
     # Period
-    c.setFont("Helvetica", 9)
+    c.setFont("Helvetica", 10)
     c.drawCentredString(width / 2, y, period)
-    y -= 18
+    y -= 50
 
     # Employee ID
-    c.setFont("Helvetica", 9)
+    c.setFont("Helvetica", 10)
     c.drawCentredString(width / 2, y, emp_id)
-    y -= 12
 
     # Name
-    c.setFont("Helvetica-Bold", 11)
+    y -= 30
+    c.setFont("Helvetica-Bold", 12)
     c.drawCentredString(width / 2, y, name)
-    y -= 12
 
     # Department
-    c.setFont("Helvetica", 9)
+    y -= 25
+    c.setFont("Helvetica", 10)
     c.drawCentredString(width / 2, y, department)
 
     # Total Pay (large, centered, underlined)
-    y -= 22
-    c.setFont("Helvetica-Bold", 14)
+    y -= 35
+    c.setFont("Helvetica-Bold", 16)
     total_pay_str = f"{total_pay:,.2f}"
     c.drawCentredString(width / 2, y, total_pay_str)
 
     # Underline
-    text_width = c.stringWidth(total_pay_str, "Helvetica-Bold", 14)
+    text_width = c.stringWidth(total_pay_str, "Helvetica-Bold", 16)
     c.line(width / 2 - text_width / 2, y - 2, width / 2 + text_width / 2, y - 2)
 
     c.showPage()
