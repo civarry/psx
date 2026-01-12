@@ -397,59 +397,25 @@ with tab3:
 # This runs at the end to ensure elements are loaded
 components.html("""
 <script>
-    console.log('[Branding Hider] Script started');
-
-    // Use window.top to access the top-level document (where branding elements are)
     const topDoc = window.top.document;
-
-    // Debug: Scan top document after 3 seconds
-    setTimeout(() => {
-        console.log('[Branding Hider] === DEBUG: Scanning TOP document ===');
-
-        const allLinks = topDoc.querySelectorAll('a');
-        console.log('[Branding Hider] Total links:', allLinks.length);
-
-        allLinks.forEach(a => {
-            if (a.href && a.href.includes('streamlit.io')) {
-                console.log('[Branding Hider] Streamlit.io link:', a.href, a);
-            }
-        });
-
-        // Check for branding elements
-        topDoc.querySelectorAll('*').forEach(el => {
-            if (el.className && typeof el.className === 'string') {
-                if (el.className.includes('_profile') || el.className.includes('_viewer') || el.className.includes('Badge')) {
-                    console.log('[Branding Hider] Found:', el.className, el);
-                }
-            }
-        });
-
-        const avatars = topDoc.querySelectorAll('img[alt*="Avatar"]');
-        console.log('[Branding Hider] Avatars:', avatars.length);
-    }, 3000);
 
     // Inject CSS into top document
     const css = `
         [class*="_profilePreview_"] { display: none !important; }
+        [class*="_profileContainer_"] { display: none !important; }
         a[href*="streamlit.io/cloud"] { display: none !important; }
         [class*="_viewerBadge_"] { display: none !important; }
     `;
     const style = document.createElement('style');
     style.textContent = css;
-    try {
-        topDoc.head.appendChild(style);
-        console.log('[Branding Hider] CSS injected into TOP document');
-    } catch(e) {
-        console.log('[Branding Hider] CSS injection failed:', e.message);
-    }
+    try { topDoc.head.appendChild(style); } catch(e) {}
 
-    // Hide function targeting top document
+    // Hide elements via JS (backup for CSS)
     function hideElements() {
         try {
-            topDoc.querySelectorAll('[class*="_profilePreview_"]').forEach(el => el.style.display = 'none');
+            topDoc.querySelectorAll('[class*="_profilePreview_"], [class*="_profileContainer_"]').forEach(el => el.style.display = 'none');
             topDoc.querySelectorAll('a[href*="streamlit.io/cloud"]').forEach(el => el.style.display = 'none');
             topDoc.querySelectorAll('[class*="_viewerBadge_"]').forEach(el => el.style.display = 'none');
-            topDoc.querySelectorAll('img[alt*="Avatar"]').forEach(el => el.style.display = 'none');
         } catch(e) {}
     }
 
