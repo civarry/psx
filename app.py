@@ -4,6 +4,7 @@ Generate and email payslips, excess OT, and allowance documents automatically fr
 """
 
 import streamlit as st
+import streamlit.components.v1 as components
 import tempfile
 import shutil
 import atexit
@@ -391,3 +392,40 @@ with tab2:
 
 with tab3:
     render_allowance_tab()
+
+# ---------- HIDE STREAMLIT CLOUD BRANDING (via component) ----------
+# This runs at the end to ensure elements are loaded
+components.html("""
+<script>
+    console.log('[Streamlit Branding Hider] Script started');
+
+    // Inject CSS into parent document to hide Streamlit Cloud branding
+    const css = `
+        [class*="_profilePreview_"] { display: none !important; }
+        a[href*="streamlit.io/cloud"] { display: none !important; }
+    `;
+    const style = document.createElement('style');
+    style.textContent = css;
+
+    // Try to inject into parent document
+    try {
+        window.parent.document.head.appendChild(style);
+        console.log('[Streamlit Branding Hider] CSS injected into parent document');
+    } catch(e) {
+        console.log('[Streamlit Branding Hider] Parent access blocked:', e.message);
+        document.head.appendChild(style);
+    }
+
+    // Also try direct manipulation
+    try {
+        const profiles = window.parent.document.querySelectorAll('[class*="_profilePreview_"]');
+        const badges = window.parent.document.querySelectorAll('a[href*="streamlit.io/cloud"]');
+        console.log('[Streamlit Branding Hider] Found profiles:', profiles.length, 'badges:', badges.length);
+        profiles.forEach(el => el.style.display = 'none');
+        badges.forEach(el => el.style.display = 'none');
+        console.log('[Streamlit Branding Hider] Elements hidden via JS');
+    } catch(e) {
+        console.log('[Streamlit Branding Hider] Direct manipulation blocked:', e.message);
+    }
+</script>
+""", height=0, scrolling=False)
