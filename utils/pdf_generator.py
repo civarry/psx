@@ -451,14 +451,15 @@ def create_allowance_pdf(row, output_dir, logo_path=None, company_config=None):
 
     company_name = company_config.get("company_name", "MASSPOWER PHILIPPINES ELECTRONIC INC.")
 
-    # Create PDF (Portrait orientation)
-    c = canvas.Canvas(file_path, pagesize=A4)
-    width, height = A4
+    # Create PDF (Landscape orientation)
+    page = landscape(A4)
+    c = canvas.Canvas(file_path, pagesize=page)
+    width, height = page
 
     # Margins
     left = 50
     right = width - 50
-    top = height - 50
+    top = height - 40
     y = top
 
     # ---------- HEADER ----------
@@ -490,11 +491,6 @@ def create_allowance_pdf(row, output_dir, logo_path=None, company_config=None):
     c.setFont("Helvetica", 10)
     c.drawCentredString(width / 2, y, period)
     y -= 50
-
-    # Employee details box
-    box_left = left + 80
-    box_width = right - left - 160
-    box_height = 120
 
     # Employee ID
     c.setFont("Helvetica", 10)
