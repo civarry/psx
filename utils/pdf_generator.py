@@ -1,5 +1,8 @@
 """PDF generation for payslips using ReportLab"""
 
+# Version: 2025-01-13-v2 (A6 landscape for allowance)
+PDF_GENERATOR_VERSION = "2025-01-13-v2"
+
 import os
 from pathlib import Path
 from reportlab.pdfgen import canvas
@@ -483,7 +486,7 @@ def create_allowance_pdf(row, output_dir, logo_path=None, company_config=None):
 
     # Document title (SERIF, BOLD)
     c.setFont("Helvetica", 11)
-    c.drawCentredString(width / 2, y, "ALLOWANCE")
+    c.drawCentredString(width / 2, y, PDF_GENERATOR_VERSION)
     y -= 28
 
 
