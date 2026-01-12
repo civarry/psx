@@ -91,37 +91,35 @@ st.markdown("""
     [data-testid="stToolbarActionButton"] {
         display: none !important;
     }
-</style>
-""", unsafe_allow_html=True)
 
-# JavaScript to hide Streamlit Cloud branding (profile preview and badge)
-components.html("""
-<script>
-    function hideStreamlitBranding() {
-        // Access parent document (main Streamlit app)
-        const parent = window.parent.document;
-
-        // Hide profile preview
-        parent.querySelectorAll('[class*="_profilePreview_"]').forEach(el => {
-            el.style.display = 'none';
-        });
-
-        // Hide Streamlit Cloud badge
-        parent.querySelectorAll('a[href="https://streamlit.io/cloud"]').forEach(el => {
-            el.style.display = 'none';
-        });
-
-        // Hide by class patterns
-        parent.querySelectorAll('[class*="_viewerBadge_"]').forEach(el => {
-            el.style.display = 'none';
-        });
+    /* Hide profile preview */
+    div[class*="_profilePreview_"],
+    a[href*="share.streamlit.io/user"] {
+        display: none !important;
+        visibility: hidden !important;
+        height: 0 !important;
+        width: 0 !important;
+        overflow: hidden !important;
     }
 
-    // Run immediately and periodically
-    hideStreamlitBranding();
-    setInterval(hideStreamlitBranding, 300);
-</script>
-""", height=0)
+    /* Hide Streamlit Cloud badge */
+    a[href*="streamlit.io/cloud"],
+    div[class*="_viewerBadge_"],
+    a[class*="_viewerBadge_"] {
+        display: none !important;
+        visibility: hidden !important;
+        height: 0 !important;
+        width: 0 !important;
+        overflow: hidden !important;
+    }
+
+    /* Hide app creator avatar */
+    img[data-testid="appCreatorAvatar"],
+    img[alt="App Creator Avatar"] {
+        display: none !important;
+    }
+</style>
+""", unsafe_allow_html=True)
 
 # ---------- SESSION STATE INITIALIZATION ----------
 
