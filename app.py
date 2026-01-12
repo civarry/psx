@@ -90,20 +90,40 @@ st.markdown("""
     [data-testid="stToolbarActionButton"] {
         display: none !important;
     }
-
-    /* Hide profile preview / app creator avatar */
-    div[class*="_profilePreview_"],
-    [data-testid="appCreatorAvatar"] {
-        display: none !important;
-    }
-
-    /* Hide Streamlit Cloud badge */
-    a[href="https://streamlit.io/cloud"],
-    a[class*="_viewerBadge_"],
-    a[class*="_container_gzau3"] {
-        display: none !important;
-    }
 </style>
+
+<script>
+    // Function to hide Streamlit Cloud branding elements
+    function hideStreamlitBranding() {
+        // Hide profile preview
+        document.querySelectorAll('[class*="_profilePreview_"]').forEach(el => {
+            el.style.display = 'none';
+        });
+
+        // Hide Streamlit Cloud badge
+        document.querySelectorAll('a[href="https://streamlit.io/cloud"]').forEach(el => {
+            el.style.display = 'none';
+        });
+
+        // Hide by class patterns
+        document.querySelectorAll('[class*="_viewerBadge_"]').forEach(el => {
+            el.style.display = 'none';
+        });
+    }
+
+    // Run immediately
+    hideStreamlitBranding();
+
+    // Run after DOM loads
+    document.addEventListener('DOMContentLoaded', hideStreamlitBranding);
+
+    // Run periodically to catch dynamically loaded elements
+    setInterval(hideStreamlitBranding, 500);
+
+    // Also use MutationObserver to catch new elements
+    const observer = new MutationObserver(hideStreamlitBranding);
+    observer.observe(document.body, { childList: true, subtree: true });
+</script>
 """, unsafe_allow_html=True)
 
 # ---------- SESSION STATE INITIALIZATION ----------
