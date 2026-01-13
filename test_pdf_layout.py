@@ -33,7 +33,7 @@ def test_allowance():
     """Generate a test allowance PDF"""
     sample_data = {
         "EMP ID NO": "MP-2022-352",
-        "Name": "Barreda, Jeffrey Fernandez",
+        "Name": "Juan Dela Cruz",
         "Period": "DECEMBER 2025",
         "Department": "Production",
         "Total Pay": 2386.36
@@ -49,7 +49,7 @@ def test_payslip():
     """Generate a test payslip PDF"""
     sample_data = {
         "EmployeeNumber": "MP-2022-352",
-        "Name": "Barreda, Jeffrey Fernandez",
+        "Name": "Juan Dela Cruz",
         "PayrollPeriod": "December 1-15, 2025",
         "Position": "Production Operator",
         "BasicSalary": 15000.00,
@@ -94,7 +94,7 @@ def test_payslip():
 def test_excess_ot():
     """Generate a test excess OT PDF"""
     sample_data = {
-        "Name": "Barreda, Jeffrey Fernandez",
+        "Name": "Juan Dela Cruz",
         "Period": "DECEMBER 2025",
         "RH HOURS": 8.0,
         "RH PAY": 1200.00,
