@@ -317,8 +317,8 @@ def create_excess_ot_pdf(row, output_dir, logo_path=None, company_config=None):
 
     # ---------- HEADER ----------
     if logo_path and os.path.exists(logo_path):
-        logo_w = 80
-        logo_h = 40
+        logo_w = 120
+        logo_h = 60
         c.drawImage(
             logo_path,
             (width - logo_w) / 2,
@@ -331,35 +331,39 @@ def create_excess_ot_pdf(row, output_dir, logo_path=None, company_config=None):
         y -= logo_h + 15
 
     # Company name
-    c.setFont("Times-Bold", 11)
+    c.setFont("Times-Bold", 15)
     c.drawCentredString(width / 2, y, company_name.upper())
     y -= 16
 
     # Document title
-    c.setFont("Helvetica", 11)
+    c.setFont("Helvetica", 15)
     c.drawCentredString(width / 2, y, "EXCESS OVERTIME")
     y -= 25
 
     # Period
-    c.setFont("Helvetica", 10)
+    c.setFont("Helvetica", 14)
     c.drawCentredString(width / 2, y, period)
     y -= 25
 
     # Employee name
-    c.setFont("Helvetica-Bold", 12)
+    c.setFont("Helvetica-Bold", 15)
     c.drawCentredString(width / 2, y, name)
     y -= 35
 
     # ---------- OT TABLE ----------
     table_data = [
         ['', 'HOURS', 'AMOUNT'],
-        ['RH', f"{get_safe(row, 'RH Hours', 0):.2f}", f"{get_safe(row, 'RH Pay', 0):.2f}"],
-        ['ND', f"{get_safe(row, 'ND Hours', 0):.2f}", f"{get_safe(row, 'ND Pay', 0):.2f}"],
-        ['ROT', f"{get_safe(row, 'ROT Hours', 0):.2f}", f"{get_safe(row, 'ROT Pay', 0):.2f}"],
-        ['SUNDAY', f"{get_safe(row, 'Sunday/SPH Hours', 0):.2f}", f"{get_safe(row, 'Sunday/SPH Pay', 0):.2f}"],
-        ['SUNDAY/SPH', f"{get_safe(row, 'Sunday/SPH Hours', 0):.2f}", f"{get_safe(row, 'Sunday/SPH Pay', 0):.2f}"],
-        ['SUNDAY\nOT/SPH', f"{get_safe(row, 'Sunday/SPH OT Hours', 0):.2f}", f"{get_safe(row, 'Sunday/SPH OT Pay', 0):.2f}"],
-        ['SUNDAY/SPH\nND', f"{get_safe(row, 'Sunday/SPH ND Hours', 0):.2f}", f"{get_safe(row, 'Sunday/SPH ND Pay', 0):.2f}"],
+        ['RH', f"{get_safe(row, 'RH HOURS', 0):.2f}", f"{get_safe(row, 'RH PAY', 0):.2f}"],
+        ['ND', f"{get_safe(row, 'ND HOURS', 0):.2f}", f"{get_safe(row, 'ND PAY', 0):.2f}"],
+        ['ROT', f"{get_safe(row, 'ROT HOURS', 0):.2f}", f"{get_safe(row, 'ROT PAY', 0):.2f}"],
+        ['SUNDAY', f"{get_safe(row, 'SUNDAY HOURS', 0):.2f}", f"{get_safe(row, 'SUNDAY PAY', 0):.2f}"],
+        ['SUN/SPH', f"{get_safe(row, 'SUN/SPH HOURS', 0):.2f}", f"{get_safe(row, 'SUN/SPH PAY', 0):.2f}"],
+        ['SUN/SPH OT', f"{get_safe(row, 'SUN/SPH OT HOURS', 0):.2f}", f"{get_safe(row, 'SUN/SPH OT PAY', 0):.2f}"],
+        ['SUN/SPH ND', f"{get_safe(row, 'SUN/SPH ND HOURS', 0):.2f}", f"{get_safe(row, 'SUN/SPH ND PAY', 0):.2f}"],
+        ['RD+SPH', f"{get_safe(row, 'RD+SPH HOURS', 0):.2f}", f"{get_safe(row, 'RD+SPH PAY', 0):.2f}"],
+        ['RD+SPH OT', f"{get_safe(row, 'RD+SPH OT HOURS', 0):.2f}", f"{get_safe(row, 'RD+SPH OT PAY', 0):.2f}"],
+        ['RD+SPH ND', f"{get_safe(row, 'RD+SPH ND HOURS', 0):.2f}", f"{get_safe(row, 'RD+SPH ND PAY', 0):.2f}"],
+        ['OFFSET', f"{get_safe(row, 'OFFSET', 0):.2f}", f"{get_safe(row, 'OFFSET Pay', 0):.2f}"],
         ['ADJ.', '', f"{get_safe(row, 'Adjustment', 0):.2f}"],
         ['', '', ''],
         ['', 'Total Pay', f"{get_safe(row, 'Total Pay', 0):.2f}"],
@@ -370,43 +374,50 @@ def create_excess_ot_pdf(row, output_dir, logo_path=None, company_config=None):
     table_width = right - left - 100
     col_widths = [table_width * 0.3, table_width * 0.35, table_width * 0.35]
 
-    # Draw table headers
-    c.setFont("Helvetica-Bold", 10)
-    c.rect(table_left, y - 25, col_widths[0], 25)
-    c.rect(table_left + col_widths[0], y - 25, col_widths[1], 25)
-    c.rect(table_left + col_widths[0] + col_widths[1], y - 25, col_widths[2], 25)
+    # Table background color #fef1c8
+    from reportlab.lib.colors import HexColor
+    table_bg_color = HexColor('#fef1c8')
 
+    # Draw table headers
+    c.setFont("Helvetica-Bold", 12)
+    c.setLineWidth(1.5)  # Thicker border
+    c.setFillColor(table_bg_color)
+    c.rect(table_left, y - 25, col_widths[0], 25, fill=1)
+    c.rect(table_left + col_widths[0], y - 25, col_widths[1], 25, fill=1)
+    c.rect(table_left + col_widths[0] + col_widths[1], y - 25, col_widths[2], 25, fill=1)
+
+    c.setFillColor(HexColor('#132048'))  # White text for header
     c.drawCentredString(table_left + col_widths[0] / 2, y - 17, '')
     c.drawCentredString(table_left + col_widths[0] + col_widths[1] / 2, y - 17, 'HOURS')
     c.drawCentredString(table_left + col_widths[0] + col_widths[1] + col_widths[2] / 2, y - 17, 'AMOUNT')
     y -= 25
 
     # Draw table rows
-    c.setFont("Helvetica", 9)
     row_height = 25
     for i, data_row in enumerate(table_data[1:], 1):
-        # Draw borders
-        c.rect(table_left, y - row_height, col_widths[0], row_height)
-        c.rect(table_left + col_widths[0], y - row_height, col_widths[1], row_height)
-        c.rect(table_left + col_widths[0] + col_widths[1], y - row_height, col_widths[2], row_height)
+        # Draw filled rectangles with background color
+        c.setFillColor(table_bg_color)
+        c.rect(table_left, y - row_height, col_widths[0], row_height, fill=1)
+        c.rect(table_left + col_widths[0], y - row_height, col_widths[1], row_height, fill=1)
+        c.rect(table_left + col_widths[0] + col_widths[1], y - row_height, col_widths[2], row_height, fill=1)
 
-        # Handle multiline labels
+        # First column (labels) - BOLD, white text
+        c.setFillColor(HexColor('#132048'))
+        c.setFont("Helvetica-Bold", 12)
         if '\n' in data_row[0]:
             lines = data_row[0].split('\n')
             for j, line in enumerate(lines):
                 c.drawString(table_left + 5, y - 12 - (j * 10), line)
         else:
-            if i == len(table_data) - 1:  # Total Pay row
-                c.setFont("Helvetica-Bold", 10)
             c.drawString(table_left + 5, y - 15, data_row[0])
 
-        # Hours column
-        c.setFont("Helvetica", 9)
+        # Hours column - regular
+        c.setFont("Helvetica", 12)
         c.drawRightString(table_left + col_widths[0] + col_widths[1] - 5, y - 15, data_row[1])
 
         # Amount column
-        if i == len(table_data) - 1:  # Total Pay row
-            c.setFont("Helvetica-Bold", 10)
+        if i == len(table_data) - 1:  # Total Pay row - bold
+            c.setFont("Helvetica-Bold", 12)
         c.drawRightString(table_left + col_widths[0] + col_widths[1] + col_widths[2] - 5, y - 15, data_row[2])
 
         y -= row_height

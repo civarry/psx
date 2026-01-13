@@ -45,12 +45,16 @@ EXCESS_OT_REQUIRED_COLUMNS = [
     'Period', 'Name',
 
     # Hours
-    'RH Hours', 'ND Hours', 'ROT Hours',
-    'Sunday/SPH Hours', 'Sunday/SPH OT Hours', 'Sunday/SPH ND Hours',
+    'RH HOURS', 'ND HOURS', 'ROT HOURS',
+    'SUNDAY HOURS', 'SUN/SPH HOURS', 'SUN/SPH OT HOURS', 'SUN/SPH ND HOURS',
+    'RD+SPH HOURS', 'RD+SPH OT HOURS', 'RD+SPH ND HOURS',
+    'OFFSET',
 
     # Pay
-    'RH Pay', 'ND Pay', 'ROT Pay',
-    'Sunday/SPH Pay', 'Sunday/SPH OT Pay', 'Sunday/SPH ND Pay',
+    'RH PAY', 'ND PAY', 'ROT PAY',
+    'SUNDAY PAY', 'SUN/SPH PAY', 'SUN/SPH OT PAY', 'SUN/SPH ND PAY',
+    'RD+SPH PAY', 'RD+SPH OT PAY', 'RD+SPH ND PAY',
+    'OFFSET Pay',
 
     # Totals
     'Adjustment', 'Total Pay'
