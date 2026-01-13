@@ -84,6 +84,18 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
+# ---------- PAGE RELOAD WARNING ----------
+# Show confirmation dialog when user tries to refresh or leave the page
+components.html("""
+<script>
+    window.addEventListener('beforeunload', function (e) {
+        e.preventDefault();
+        e.returnValue = 'You have unsaved data. Are you sure you want to leave? This will clear your current session.';
+        return e.returnValue;
+    });
+</script>
+""", height=0)
+
 # ---------- HIDE STREAMLIT BRANDING ----------
 
 st.markdown("""
