@@ -1,0 +1,36 @@
+/* Hide Fork button and GitHub icon (toolbar action buttons) */
+[data-testid="stToolbarActionButton"] {
+    display: none !important;
+}
+
+/* Hide footer */
+footer {
+    visibility: hidden !important;
+}
+
+/* Hide profile preview */
+div[class*="_profilePreview_"],
+a[href*="share.streamlit.io/user"] {
+    display: none !important;
+    visibility: hidden !important;
+    height: 0 !important;
+    width: 0 !important;
+    overflow: hidden !important;
+}
+
+/* Hide Streamlit Cloud badge */
+a[href*="streamlit.io/cloud"],
+div[class*="_viewerBadge_"],
+a[class*="_viewerBadge_"] {
+    display: none !important;
+    visibility: hidden !important;
+    height: 0 !important;
+    width: 0 !important;
+    overflow: hidden !important;
+}
+
+/* Hide app creator avatar */
+img[data-testid="appCreatorAvatar"],
+img[alt="App Creator Avatar"] {
+    display: none !important;
+}

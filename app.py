@@ -84,60 +84,23 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
-# ---------- PAGE RELOAD WARNING ----------
-# Show confirmation dialog when user tries to refresh or leave the page
-components.html("""
-<script>
-    window.addEventListener('beforeunload', function (e) {
-        e.preventDefault();
-        e.returnValue = 'You have unsaved data. Are you sure you want to leave? This will clear your current session.';
-        return e.returnValue;
-    });
-</script>
-""", height=0)
+# ---------- LOAD EXTERNAL CSS AND JS ----------
 
-# ---------- HIDE STREAMLIT BRANDING ----------
+def load_static_files():
+    """Load external CSS and JS files from static folder"""
+    # Load CSS
+    css_path = Path("static/styles.css")
+    if css_path.exists():
+        with open(css_path, "r") as f:
+            st.markdown(f"<style>{f.read()}</style>", unsafe_allow_html=True)
 
-st.markdown("""
-<style>
-    /* Hide Fork button and GitHub icon (toolbar action buttons) */
-    [data-testid="stToolbarActionButton"] {
-        display: none !important;
-    }
+    # Load JS (page reload warning)
+    js_path = Path("static/scripts.js")
+    if js_path.exists():
+        with open(js_path, "r") as f:
+            components.html(f"<script>{f.read()}</script>", height=0)
 
-    /* Hide footer */
-    footer {
-        visibility: hidden !important;
-    }
-
-    /* Hide profile preview */
-    div[class*="_profilePreview_"],
-    a[href*="share.streamlit.io/user"] {
-        display: none !important;
-        visibility: hidden !important;
-        height: 0 !important;
-        width: 0 !important;
-        overflow: hidden !important;
-    }
-
-    /* Hide Streamlit Cloud badge */
-    a[href*="streamlit.io/cloud"],
-    div[class*="_viewerBadge_"],
-    a[class*="_viewerBadge_"] {
-        display: none !important;
-        visibility: hidden !important;
-        height: 0 !important;
-        width: 0 !important;
-        overflow: hidden !important;
-    }
-
-    /* Hide app creator avatar */
-    img[data-testid="appCreatorAvatar"],
-    img[alt="App Creator Avatar"] {
-        display: none !important;
-    }
-</style>
-""", unsafe_allow_html=True)
+load_static_files()
 
 # ---------- SESSION STATE INITIALIZATION ----------
 
@@ -413,33 +376,3 @@ with tab2:
 
 with tab3:
     render_allowance_tab()
-
-# ---------- HIDE STREAMLIT CLOUD BRANDING (via component) ----------
-# This runs at the end to ensure elements are loaded
-components.html("""
-<script>
-    const topDoc = window.top.document;
-
-    // Inject CSS into top document
-    const css = `
-        [class*="_profilePreview_"] { display: none !important; }
-        [class*="_profileContainer_"] { display: none !important; }
-        a[href*="streamlit.io/cloud"] { display: none !important; }
-        [class*="_viewerBadge_"] { display: none !important; }
-    `;
-    const style = document.createElement('style');
-    style.textContent = css;
-    try { topDoc.head.appendChild(style); } catch(e) {}
-
-    // Hide elements via JS (backup for CSS)
-    function hideElements() {
-        try {
-            topDoc.querySelectorAll('[class*="_profilePreview_"], [class*="_profileContainer_"]').forEach(el => el.style.display = 'none');
-            topDoc.querySelectorAll('a[href*="streamlit.io/cloud"]').forEach(el => el.style.display = 'none');
-            topDoc.querySelectorAll('[class*="_viewerBadge_"]').forEach(el => el.style.display = 'none');
-        } catch(e) {}
-    }
-
-    setInterval(hideElements, 500);
-</script>
-""", height=0, scrolling=False)
