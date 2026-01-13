@@ -3,8 +3,8 @@ name: Keep Streamlit Alive
 # Run every 10 hours to prevent Streamlit hibernation (12-hour inactivity limit)
 on:
   schedule:
-    # Runs at 00:00, 10:00, and 20:00 UTC daily
-    - cron: '0 0,10,20 * * *'
+    # TESTING: Run every 5 minutes (change back to '0 0,10,20 * * *' after testing)
+    - cron: '*/5 * * * *'
   workflow_dispatch:  # Allow manual trigger
 
 jobs:
