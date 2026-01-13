@@ -83,6 +83,3 @@ Download templates from the sidebar. Each document type has specific required co
 | Missing columns | Compare Excel with downloaded template |
 | Emails not sending | Check Gmail security alerts and daily limits (500/day) |
 
-## Support
-
-For assistance, contact your system administrator.
