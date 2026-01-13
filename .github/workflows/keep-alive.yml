@@ -1,0 +1,28 @@
+name: Keep Streamlit Alive
+
+# Run every 10 hours to prevent Streamlit hibernation (12-hour inactivity limit)
+on:
+  schedule:
+    # Runs at 00:00, 10:00, and 20:00 UTC daily
+    - cron: '0 0,10,20 * * *'
+  workflow_dispatch:  # Allow manual trigger
+
+jobs:
+  keep-alive:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Configure Git
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+      - name: Push empty commit to keep Streamlit awake
+        run: |
+          git commit --allow-empty -m "chore: keep-alive commit [skip ci]"
+          git push
