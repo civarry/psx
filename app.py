@@ -9,6 +9,7 @@ import tempfile
 import shutil
 import atexit
 import json
+import chardet
 from pathlib import Path
 from datetime import datetime
 
@@ -272,43 +273,36 @@ with st.sidebar:
                 # Load config if uploaded
                 if config_file is not None:
                     try:
-                        # Read raw bytes and try multiple encodings
+                        # Read raw bytes and auto-detect encoding
                         raw_bytes = config_file.read()
-                        content = None
+                        detected = chardet.detect(raw_bytes)
+                        encoding = detected.get('encoding', 'utf-8') or 'utf-8'
 
-                        # Try encodings in order of preference
-                        for encoding in ['utf-8', 'utf-8-sig', 'cp1252', 'latin-1']:
-                            try:
-                                content = raw_bytes.decode(encoding)
-                                break
-                            except UnicodeDecodeError:
-                                continue
+                        content = raw_bytes.decode(encoding)
+                        config_data = json.loads(content)
 
-                        if content is None:
-                            st.error("Unable to read file. Please save the file with UTF-8 encoding.")
+                        # Validate SMTP nested structure
+                        smtp_config = config_data.get('smtp', {})
+                        if not smtp_config.get('email') or not smtp_config.get('password'):
+                            st.error("SMTP configuration incomplete. Both email and password are required.")
                         else:
-                            config_data = json.loads(content)
+                            # Load company details
+                            st.session_state.company_name = config_data.get('company_name', '')
+                            st.session_state.footer_text = config_data.get('footer_text', '')
+                            st.session_state.document_id = config_data.get('document_id', '')
+                            st.session_state.effectivity_date = config_data.get('effectivity_date', '')
 
-                            # Validate SMTP nested structure
-                            smtp_config = config_data.get('smtp', {})
-                            if not smtp_config.get('email') or not smtp_config.get('password'):
-                                st.error("SMTP configuration incomplete. Both email and password are required.")
-                            else:
-                                # Load company details
-                                st.session_state.company_name = config_data.get('company_name', '')
-                                st.session_state.footer_text = config_data.get('footer_text', '')
-                                st.session_state.document_id = config_data.get('document_id', '')
-                                st.session_state.effectivity_date = config_data.get('effectivity_date', '')
+                            # Load SMTP credentials
+                            st.session_state.smtp_email = smtp_config.get('email', '')
+                            st.session_state.smtp_password = smtp_config.get('password', '')
 
-                                # Load SMTP credentials
-                                st.session_state.smtp_email = smtp_config.get('email', '')
-                                st.session_state.smtp_password = smtp_config.get('password', '')
-
-                                st.session_state.config_loaded = True
-                                st.rerun()
+                            st.session_state.config_loaded = True
+                            st.rerun()
 
                     except json.JSONDecodeError:
                         st.error("Invalid JSON file. Please check the file format.")
+                    except UnicodeDecodeError:
+                        st.error("Unable to read file encoding. Please try re-saving the file.")
                     except Exception as e:
                         st.error(f"Error loading config: {str(e)}")
 
