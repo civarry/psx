@@ -6,6 +6,7 @@ import os
 from pathlib import Path
 from datetime import datetime
 from zipfile import ZipFile
+import concurrent.futures
 
 from utils.validators import validate_email, validate_excel_data, test_smtp_connection
 from utils.email_sender import EmailSender
@@ -85,15 +86,7 @@ def render_data_preview(df, required_columns):
 def process_documents(df, document_type, pdf_generator_func, dry_run=False):
     """
     Process documents (generate PDFs and optionally send emails)
-
-    Args:
-        df: DataFrame with employee data
-        document_type: Type of document
-        pdf_generator_func: Function to generate PDFs
-        dry_run: If True, only generate PDFs without sending emails
-
-    Returns:
-        DataFrame: Results with status for each employee
+    Uses parallel execution for performance.
     """
     # Verify configuration
     if not dry_run:
@@ -105,7 +98,7 @@ def process_documents(df, document_type, pdf_generator_func, dry_run=False):
             st.error("SMTP credentials not found in configuration!")
             return None
 
-        # Test SMTP connection
+        # Test SMTP connection (keep this main thread check for fast feedback)
         if not st.session_state.smtp_validated:
             with st.spinner("Testing SMTP connection..."):
                 success, message = test_smtp_connection(
@@ -151,92 +144,73 @@ def process_documents(df, document_type, pdf_generator_func, dry_run=False):
     else:
         output_dir = st.session_state.temp_dir
 
-    # Initialize email sender if not dry run
-    email_sender = None
+    # Prepare SMTP config for workers
+    smtp_config = {}
     if not dry_run:
-        email_sender = EmailSender(
-            st.session_state.smtp_email,
-            st.session_state.smtp_password,
-            st.session_state.get('smtp_server', 'smtp.gmail.com'),
-            st.session_state.get('smtp_port', 587),
-            st.session_state.get('email_template', {})
-        )
+        smtp_config = {
+            'email': st.session_state.smtp_email,
+            'password': st.session_state.smtp_password,
+            'server': st.session_state.get('smtp_server', 'smtp.gmail.com'),
+            'port': st.session_state.get('smtp_port', 587),
+            'template': st.session_state.get('email_template', {})
+        }
 
-        success, message = email_sender.connect()
-        if not success:
-            st.error(f"Failed to connect to SMTP server: {message}")
-            return None
-
-    # Process each employee
+    # Process in parallel
     results = []
     progress_bar = st.progress(0)
     status_text = st.empty()
+    
+    # We need to import the helper here or define it above. 
+    # Since I cannot easily inject it above in this replacement without messing up imports,
+    # I will define the worker function logic here or assume it's imported.
+    # To be safe and self-contained in this replacement block, I'll refer to the helper I will add.
+    from tabs.process_helper import process_single_document
 
-    for idx, row in df.iterrows():
-        # Update progress
-        progress = (idx + 1) / len(df)
-        progress_bar.progress(progress)
+    with concurrent.futures.ThreadPoolExecutor(max_workers=5) as executor:
+        # Submit all tasks
+        future_to_identifier = {}
+        for idx, row in df.iterrows():
+            future = executor.submit(
+                process_single_document,
+                row, 
+                document_type, 
+                pdf_generator_func, 
+                output_dir, 
+                logo_path, 
+                company_config, 
+                dry_run, 
+                smtp_config
+            )
+            future_to_identifier[future] = f"Row {idx+1}"
 
-        # Get employee identifier
-        if document_type == 'PAYSLIP':
-            identifier = f"{row.get('EmployeeNumber', 'N/A')} - {row.get('Name', 'N/A')}"
-        elif document_type == 'EXCESS_OT':
-            identifier = f"{row.get('Name', 'N/A')}"
-        elif document_type == 'ALLOWANCE':
-            identifier = f"{row.get('EMP ID NO', 'N/A')} - {row.get('Name', 'N/A')}"
-
-        status_text.text(f"Processing {identifier}...")
-
-        try:
-            # Generate PDF
-            pdf_path = pdf_generator_func(row, output_dir, logo_path, company_config)
-
-            result = {
-                'Identifier': identifier,
-                'PDF': os.path.basename(pdf_path),
-                'Status': 'Generated' if dry_run else 'Processing'
-            }
-
-            # Send email if not dry run
-            if not dry_run:
-                email = row.get('Email', '')
-                if pd.notna(email) and email:
-                    # Map document type to friendly name
-                    doc_type_name = document_type.replace('_', ' ').title()
-                    success, message, quota_exceeded = email_sender.send_document(row, pdf_path, doc_type_name)
-
-                    if success:
-                        result['Status'] = 'Sent'
-                        result['Message'] = 'Email sent successfully'
-                    else:
-                        result['Status'] = 'Failed'
-                        result['Message'] = message
-
-                    # Check for quota exceeded
-                    if quota_exceeded:
-                        st.warning("Gmail quota exceeded. Stopping email sending.")
-                        results.append(result)
-                        break
-                else:
-                    result['Status'] = 'Skipped'
-                    result['Message'] = 'No valid email address'
-
-            results.append(result)
-
-        except Exception as e:
-            results.append({
-                'Identifier': identifier,
-                'PDF': 'N/A',
-                'Status': 'Error',
-                'Message': str(e)
-            })
+        # Process as they complete
+        completed_count = 0
+        for future in concurrent.futures.as_completed(future_to_identifier):
+            completed_count += 1
+            progress = completed_count / len(df)
+            progress_bar.progress(progress)
+            
+            try:
+                result = future.result()
+                results.append(result)
+                status_text.text(f"Processed: {result['Identifier']} ({result['Status']})")
+                
+                if 'Quota Exceeded' in result.get('Message', ''):
+                    st.warning("Gmail quota exceeded. Stopping remaining tasks.")
+                    executor.shutdown(wait=False, cancel_futures=True)
+                    break
+                    
+            except Exception as e:
+                results.append({
+                    'Identifier': future_to_identifier[future],
+                    'PDF': 'N/A',
+                    'Status': 'Error',
+                    'Message': str(e)
+                })
 
     # Clean up
     progress_bar.empty()
     status_text.empty()
-
-    if email_sender:
-        email_sender.disconnect()
 
     # Create results DataFrame
     results_df = pd.DataFrame(results)
