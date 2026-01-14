@@ -90,15 +90,21 @@ class EmailSender:
             if not self.smtp:
                 return False, "Not connected to SMTP server", False
 
+            # Helper to sanitize text (remove non-breaking spaces)
+            def sanitize(text):
+                if text:
+                    return str(text).replace('\xa0', ' ').replace('\u00a0', ' ')
+                return text
+
             # Build email message
             to_email = row["Email"]
-            name = row["Name"]
+            name = sanitize(row["Name"])
 
             # Get period field based on document type
             if "PayrollPeriod" in row.index:
-                period = row["PayrollPeriod"]
+                period = sanitize(row["PayrollPeriod"])
             elif "Period" in row.index:
-                period = row["Period"]
+                period = sanitize(row["Period"])
             else:
                 period = "current period"
 
@@ -108,10 +114,10 @@ class EmailSender:
             msg["To"] = to_email
 
             # Build email body from template with fallbacks
-            greeting = self.email_template.get("greeting") or self.DEFAULT_EMAIL_TEMPLATE["greeting"]
-            message = self.email_template.get("message") or self.DEFAULT_EMAIL_TEMPLATE["message"]
-            footer = self.email_template.get("footer") or self.DEFAULT_EMAIL_TEMPLATE["footer"]
-            signature = self.email_template.get("signature") or self.DEFAULT_EMAIL_TEMPLATE["signature"]
+            greeting = sanitize(self.email_template.get("greeting") or self.DEFAULT_EMAIL_TEMPLATE["greeting"])
+            message = sanitize(self.email_template.get("message") or self.DEFAULT_EMAIL_TEMPLATE["message"])
+            footer = sanitize(self.email_template.get("footer") or self.DEFAULT_EMAIL_TEMPLATE["footer"])
+            signature = sanitize(self.email_template.get("signature") or self.DEFAULT_EMAIL_TEMPLATE["signature"])
 
             # Auto-inject dynamic values
             body = (
