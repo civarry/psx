@@ -32,8 +32,8 @@ class EmailSender:
             email_template: Optional dict with greeting, message, footer, signature
         """
         self.email = email
-        # Remove regular spaces and non-breaking spaces from app password
-        self.password = password.replace(" ", "").replace("\xa0", "").replace("\u00a0", "")
+        # Remove ALL non-alphanumeric characters from app password (handles any whitespace including U+00A0)
+        self.password = "".join(c for c in password if c.isalnum())
         self.smtp_server = smtp_server
         self.smtp_port = smtp_port
         self.smtp = None
