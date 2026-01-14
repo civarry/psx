@@ -137,6 +137,8 @@ def init_session_state():
         st.session_state.smtp_server = "smtp.gmail.com"
     if 'smtp_port' not in st.session_state:
         st.session_state.smtp_port = 587
+    if 'email_template' not in st.session_state:
+        st.session_state.email_template = {}
     if 'dry_run_mode' not in st.session_state:
         st.session_state.dry_run_mode = False
 
@@ -270,6 +272,9 @@ with st.sidebar:
                             # Load SMTP credentials
                             st.session_state.smtp_email = smtp_config.get('email', '')
                             st.session_state.smtp_password = smtp_config.get('password', '')
+
+                            # Load email template (optional)
+                            st.session_state.email_template = config_data.get('email_template', {})
 
                             st.session_state.config_loaded = True
                             st.rerun()

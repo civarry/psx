@@ -18,6 +18,7 @@ PAYSLIP_REQUIRED_COLUMNS = [
     # Regular Work
     'RegularHours', 'RegularAmount',
     'RegularOTHours', 'RegularOTAmount',
+    'LegalOTHours', 'LegalOTAmount',
 
     # Holidays
     'LegalHolidayHours', 'LegalHolidayAmount',

@@ -142,7 +142,7 @@ def create_payslip_pdf(row, output_dir, logo_path=None, company_config=None):
         ("Regular Hours", "RegularHours", "RegularAmount"),
         ("Regular OT", "RegularOTHours", "RegularOTAmount"),
         ("Legal Holiday", "LegalHolidayHours", "LegalHolidayAmount"),
-        ("Legal Holiday OT", None, None),
+        ("Legal Holiday OT", "LegalOTHours", "LegalOTAmount"),
         ("Special Holiday", "SpecialHolidayHours", "SpecialHolidayAmount"),
         ("Special Holiday OT", None, None),
         ("Total Night Diff.", "NightDiffHours", "NightDiffAmount"),

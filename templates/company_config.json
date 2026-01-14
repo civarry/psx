@@ -6,5 +6,11 @@
   "smtp": {
     "email": "your-email@gmail.com",
     "password": "xxxx xxxx xxxx xxxx"
+  },
+  "email_template": {
+    "greeting": "Hi",
+    "message": "Please find attached your document.",
+    "footer": "This is a system-generated email. If you have any questions, please contact Finance/Accounting Department.",
+    "signature": "Best regards,\nFinance/Accounting Department"
   }
 }

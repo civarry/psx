@@ -158,7 +158,8 @@ def process_documents(df, document_type, pdf_generator_func, dry_run=False):
             st.session_state.smtp_email,
             st.session_state.smtp_password,
             st.session_state.get('smtp_server', 'smtp.gmail.com'),
-            st.session_state.get('smtp_port', 587)
+            st.session_state.get('smtp_port', 587),
+            st.session_state.get('email_template', {})
         )
 
         success, message = email_sender.connect()

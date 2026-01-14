@@ -9,9 +9,18 @@ from typing import Tuple
 class EmailSender:
     """Handle SMTP email sending for payslips"""
 
+    # Default email template values
+    DEFAULT_EMAIL_TEMPLATE = {
+        "greeting": "Hi",
+        "message": "Please find attached your document.",
+        "footer": "This is a system-generated email. If you have any questions, please contact Finance/Accounting Department.",
+        "signature": "Best regards,\nFinance/Accounting Department"
+    }
+
     def __init__(self, email: str, password: str,
                  smtp_server: str = "smtp.gmail.com",
-                 smtp_port: int = 587):
+                 smtp_port: int = 587,
+                 email_template: dict = None):
         """
         Initialize email sender
 
@@ -20,12 +29,14 @@ class EmailSender:
             password: SMTP password (App Password for Gmail)
             smtp_server: SMTP server address
             smtp_port: SMTP port number
+            email_template: Optional dict with greeting, message, footer, signature
         """
         self.email = email
         self.password = password.replace(" ", "")  # Remove spaces from app password
         self.smtp_server = smtp_server
         self.smtp_port = smtp_port
         self.smtp = None
+        self.email_template = email_template or {}
 
     def connect(self) -> Tuple[bool, str]:
         """
@@ -96,13 +107,18 @@ class EmailSender:
             msg["From"] = self.email
             msg["To"] = to_email
 
+            # Build email body from template with fallbacks
+            greeting = self.email_template.get("greeting") or self.DEFAULT_EMAIL_TEMPLATE["greeting"]
+            message = self.email_template.get("message") or self.DEFAULT_EMAIL_TEMPLATE["message"]
+            footer = self.email_template.get("footer") or self.DEFAULT_EMAIL_TEMPLATE["footer"]
+            signature = self.email_template.get("signature") or self.DEFAULT_EMAIL_TEMPLATE["signature"]
+
+            # Auto-inject dynamic values
             body = (
-                f"Hi {name},\n\n"
+                f"{greeting} {name},\n\n"
                 f"Please find attached your {document_type.lower()} for {period}.\n\n"
-                "This is a system-generated email. If you have any questions, "
-                "please contact HR.\n\n"
-                "Best regards,\n"
-                "HR Department"
+                f"{footer}\n\n"
+                f"{signature}"
             )
             msg.set_content(body)
 
