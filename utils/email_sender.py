@@ -32,7 +32,8 @@ class EmailSender:
             email_template: Optional dict with greeting, message, footer, signature
         """
         self.email = email
-        self.password = password.replace(" ", "")  # Remove spaces from app password
+        # Remove regular spaces and non-breaking spaces from app password
+        self.password = password.replace(" ", "").replace("\xa0", "").replace("\u00a0", "")
         self.smtp_server = smtp_server
         self.smtp_port = smtp_port
         self.smtp = None
@@ -119,10 +120,10 @@ class EmailSender:
             footer = sanitize(self.email_template.get("footer") or self.DEFAULT_EMAIL_TEMPLATE["footer"])
             signature = sanitize(self.email_template.get("signature") or self.DEFAULT_EMAIL_TEMPLATE["signature"])
 
-            # Auto-inject dynamic values
+            # Build email body (document type and period are auto-appended)
             body = (
                 f"{greeting} {name},\n\n"
-                f"Please find attached your {document_type.lower()} for {period}.\n\n"
+                f"{message} ({document_type} for {period})\n\n"
                 f"{footer}\n\n"
                 f"{signature}"
             )
