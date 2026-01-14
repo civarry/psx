@@ -23,6 +23,7 @@ PAYSLIP_REQUIRED_COLUMNS = [
     # Holidays
     'LegalHolidayHours', 'LegalHolidayAmount',
     'SpecialHolidayHours', 'SpecialHolidayAmount',
+    'SpecialHolidayOTHours', 'SpecialHolidayOTAmount',
 
     # Other Earnings
     'NightDiffHours', 'NightDiffAmount',
