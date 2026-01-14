@@ -269,9 +269,11 @@ with st.sidebar:
                             st.session_state.document_id = config_data.get('document_id', '')
                             st.session_state.effectivity_date = config_data.get('effectivity_date', '')
 
-                            # Load SMTP credentials
-                            st.session_state.smtp_email = smtp_config.get('email', '')
-                            st.session_state.smtp_password = smtp_config.get('password', '')
+                            # Load SMTP credentials (sanitize to remove non-breaking spaces U+00A0)
+                            raw_email = smtp_config.get('email', '')
+                            raw_password = smtp_config.get('password', '')
+                            st.session_state.smtp_email = "".join(c for c in raw_email if c.isalnum() or c in '@._-')
+                            st.session_state.smtp_password = "".join(c for c in raw_password if c.isalnum())
 
                             # Load email template (optional)
                             st.session_state.email_template = config_data.get('email_template', {})

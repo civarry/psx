@@ -31,7 +31,8 @@ class EmailSender:
             smtp_port: SMTP port number
             email_template: Optional dict with greeting, message, footer, signature
         """
-        self.email = email
+        # Sanitize email - remove any whitespace/non-breaking spaces
+        self.email = "".join(c for c in email if c.isalnum() or c in '@._-')
         # Remove ALL non-alphanumeric characters from app password (handles any whitespace including U+00A0)
         self.password = "".join(c for c in password if c.isalnum())
         self.smtp_server = smtp_server
