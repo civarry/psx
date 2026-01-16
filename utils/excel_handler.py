@@ -1,7 +1,6 @@
 """Excel file processing for payroll data"""
 
 import pandas as pd
-from io import BytesIO
 
 
 class ColumnValidationError(Exception):
@@ -24,8 +23,10 @@ def validate_excel_columns(df: pd.DataFrame) -> tuple[bool, list, list]:
         'BasicSalary', 'MonthlyAllowance', 'Allowance',
         'RegularHours', 'RegularAmount',
         'RegularOTHours', 'RegularOTAmount',
+        'LegalOTHours', 'LegalOTAmount',
         'LegalHolidayHours', 'LegalHolidayAmount',
         'SpecialHolidayHours', 'SpecialHolidayAmount',
+        'SpecialHolidayOTHours', 'SpecialHolidayOTAmount',
         'NightDiffHours', 'NightDiffAmount',
         'OffsetHours', 'OffsetAmount',
         'PaidLeaveHours', 'PaidLeaveAmount',
@@ -77,8 +78,10 @@ def load_excel_file(uploaded_file, sheet_name: str = "Sheet1") -> pd.DataFrame:
         'BasicSalary', 'MonthlyAllowance', 'Allowance',
         'RegularHours', 'RegularAmount',
         'RegularOTHours', 'RegularOTAmount',
+        'LegalOTHours', 'LegalOTAmount',
         'LegalHolidayHours', 'LegalHolidayAmount',
         'SpecialHolidayHours', 'SpecialHolidayAmount',
+        'SpecialHolidayOTHours', 'SpecialHolidayOTAmount',
         'NightDiffHours', 'NightDiffAmount',
         'OffsetHours', 'OffsetAmount',
         'PaidLeaveHours', 'PaidLeaveAmount',

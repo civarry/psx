@@ -14,13 +14,18 @@ def get_safe(row, col, default=0):
     Args:
         row: pandas Series with employee data
         col: Column name to retrieve
-        default: Default value if column doesn't exist
+        default: Default value if column doesn't exist or is NaN
 
     Returns:
         Value from row or default
     """
+    import pandas as pd
     try:
-        return row[col]
+        value = row[col]
+        # Return default if value is NaN or None
+        if pd.isna(value):
+            return default
+        return value
     except KeyError:
         return default
 
