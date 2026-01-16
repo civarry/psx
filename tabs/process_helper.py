@@ -44,28 +44,29 @@ def process_single_document(row, document_type, pdf_generator_func, output_dir, 
                     smtp_config.get('template', {})
                 )
                 
-                # Connect
-                success, message = sender.connect()
-                if not success:
-                    result['Status'] = 'Failed'
-                    result['Message'] = f"Connection failed: {message}"
-                    return result
+                try:
+                    # Connect
+                    success, message = sender.connect()
+                    if not success:
+                        result['Status'] = 'Failed'
+                        result['Message'] = f"Connection failed: {message}"
+                        return result
 
-                # Send
-                doc_type_name = document_type.replace('_', ' ').title()
-                success, message, quota_exceeded = sender.send_document(row, pdf_path, doc_type_name)
-                
-                # Disconnect immediately
-                sender.disconnect()
+                    # Send
+                    doc_type_name = document_type.replace('_', ' ').title()
+                    success, message, quota_exceeded = sender.send_document(row, pdf_path, doc_type_name)
 
-                if success:
-                    result['Status'] = 'Sent'
-                    result['Message'] = 'Email sent successfully'
-                else:
-                    result['Status'] = 'Failed'
-                    result['Message'] = message
-                    if quota_exceeded:
-                        result['Message'] += " (Quota Exceeded)"
+                    if success:
+                        result['Status'] = 'Sent'
+                        result['Message'] = 'Email sent successfully'
+                    else:
+                        result['Status'] = 'Failed'
+                        result['Message'] = message
+                        if quota_exceeded:
+                            result['Message'] += " (Quota Exceeded)"
+                finally:
+                    # Always disconnect to prevent file descriptor leaks
+                    sender.disconnect()
 
             else:
                 result['Status'] = 'Skipped'
