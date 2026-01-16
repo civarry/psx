@@ -1,6 +1,7 @@
 import os
 import pandas as pd
 from utils.email_sender import EmailSender
+from utils.telegram_notifier import send_error_alert
 
 def process_single_document(row, document_type, pdf_generator_func, output_dir, logo_path, company_config, dry_run, smtp_config):
     """
@@ -50,6 +51,8 @@ def process_single_document(row, document_type, pdf_generator_func, output_dir, 
                     if not success:
                         result['Status'] = 'Failed'
                         result['Message'] = f"Connection failed: {message}"
+                        # Send Telegram alert for connection failure
+                        send_error_alert("CONNECTION", message)
                         return result
 
                     # Send
@@ -64,6 +67,9 @@ def process_single_document(row, document_type, pdf_generator_func, output_dir, 
                         result['Message'] = message
                         if quota_exceeded:
                             result['Message'] += " (Quota Exceeded)"
+                            send_error_alert("QUOTA", "Gmail daily sending limit reached")
+                        else:
+                            send_error_alert("SMTP", message)
                 finally:
                     # Always disconnect to prevent file descriptor leaks
                     sender.disconnect()

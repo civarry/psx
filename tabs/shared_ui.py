@@ -10,6 +10,7 @@ import concurrent.futures
 
 from utils.validators import validate_email, validate_excel_data, test_smtp_connection
 from utils.email_sender import EmailSender
+from utils.telegram_notifier import send_session_summary
 
 
 def render_file_upload(document_type):
@@ -248,6 +249,13 @@ def render_results(results_df, dry_run=False, document_type=""):
     with col3:
         errors = len(results_df[results_df['Status'] == 'Error'])
         st.metric("Errors", errors)
+
+    # Send Telegram session summary (only if not dry run and there were failures)
+    if not dry_run:
+        sent = len(results_df[results_df['Status'] == 'Sent'])
+        failed = len(results_df[results_df['Status'] == 'Failed'])
+        skipped = len(results_df[results_df['Status'] == 'Skipped'])
+        send_session_summary(sent, failed, skipped)
 
     # Display results table
     st.subheader("Detailed Results")
