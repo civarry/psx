@@ -8,8 +8,7 @@ from datetime import datetime
 from zipfile import ZipFile
 import concurrent.futures
 
-from utils.validators import validate_email, validate_excel_data, test_smtp_connection
-from utils.email_sender import EmailSender
+from utils.validators import validate_excel_data, test_smtp_connection
 from utils.telegram_notifier import send_session_summary
 
 
@@ -125,9 +124,6 @@ def process_documents(df, document_type, pdf_generator_func, dry_run=False):
                 st.error(f"Failed to create output directory: {e}")
                 return None
 
-    # Start processing
-    st.info(f"Processing {len(df)} documents...")
-
     # Prepare company config
     company_config = {
         'company_name': st.session_state.get('company_name', ''),
@@ -156,62 +152,88 @@ def process_documents(df, document_type, pdf_generator_func, dry_run=False):
             'template': st.session_state.get('email_template', {})
         }
 
-    # Process in parallel
+    # Process in batches with connection reuse
     results = []
-    progress_bar = st.progress(0)
-    status_text = st.empty()
+    progress_bar = st.progress(0, text="Processing documents...")
+
+    from tabs.process_helper import process_document_batch
+
+    # Determine chunk size for frequent updates
+    # User suggested updating every 10-20 emails.
+    # Smaller chunks = more frequent UI updates but slightly more connection overhead.
+    # Balance: Chunk size 5-10
     
-    # We need to import the helper here or define it above. 
-    # Since I cannot easily inject it above in this replacement without messing up imports,
-    # I will define the worker function logic here or assume it's imported.
-    # To be safe and self-contained in this replacement block, I'll refer to the helper I will add.
-    from tabs.process_helper import process_single_document
+    total_docs = len(df)
+    chunk_size = 10  # Update progress approx every 5-10 seconds
+    
+    if total_docs <= 20: 
+        chunk_size = 2 # Very frequent for small batches
+        
+    # Adaptive delay based on volume
+    delay_between_emails = 0.5
+    if total_docs >= 100:
+        delay_between_emails = 1.0 # Slower for large batches
+    elif total_docs >= 50:
+        delay_between_emails = 0.5
+    else:
+        delay_between_emails = 0.3 # Faster for small batches
+    
+    # Split dataframe into chunks
+    chunks = []
+    num_chunks = (len(df) // chunk_size) + (1 if len(df) % chunk_size > 0 else 0)
+    
+    for i in range(num_chunks):
+        start = i * chunk_size
+        end = start + chunk_size
+        chunk = df.iloc[start:end]
+        if len(chunk) > 0:
+            chunks.append(chunk)
 
-    with concurrent.futures.ThreadPoolExecutor(max_workers=5) as executor:
-        # Submit all tasks
-        future_to_identifier = {}
-        for idx, row in df.iterrows():
+    max_workers = 3 # Cap workers to avoid Gmail rate limits
+    
+    with concurrent.futures.ThreadPoolExecutor(max_workers=max_workers) as executor:
+        # Submit batch tasks
+        futures = []
+        for chunk in chunks:
             future = executor.submit(
-                process_single_document,
-                row, 
-                document_type, 
-                pdf_generator_func, 
-                output_dir, 
-                logo_path, 
-                company_config, 
-                dry_run, 
-                smtp_config
+                process_document_batch,
+                chunk,
+                document_type,
+                pdf_generator_func,
+                output_dir,
+                logo_path,
+                company_config,
+                dry_run,
+                smtp_config,
+                delay_between_emails
             )
-            future_to_identifier[future] = f"Row {idx+1}"
+            futures.append(future)
 
-        # Process as they complete
+        # Collect results as they complete
         completed_count = 0
-        for future in concurrent.futures.as_completed(future_to_identifier):
-            completed_count += 1
-            progress = completed_count / len(df)
-            progress_bar.progress(progress)
-            
+        for future in concurrent.futures.as_completed(futures):
             try:
-                result = future.result()
-                results.append(result)
-                status_text.text(f"Processed: {result['Identifier']} ({result['Status']})")
+                batch_results = future.result()
+                results.extend(batch_results)
                 
-                if 'Quota Exceeded' in result.get('Message', ''):
-                    st.warning("Gmail quota exceeded. Stopping remaining tasks.")
-                    executor.shutdown(wait=False, cancel_futures=True)
-                    break
-                    
+                # Update progress
+                # Progress is based on total RESULTS collected vs total expected
+                completed_count = len(results)
+                progress = min(completed_count / total_docs, 0.99)
+                progress_bar.progress(progress, text=f"Processed {completed_count}/{total_docs} documents")
+
+                # Check for quota exceeded in batch
+                for result in batch_results:
+                    if 'Quota Exceeded' in result.get('Message', ''):
+                        st.warning("Gmail quota exceeded. Some emails may not have been sent.")
             except Exception as e:
-                results.append({
-                    'Identifier': future_to_identifier[future],
-                    'PDF': 'N/A',
-                    'Status': 'Error',
-                    'Message': str(e)
-                })
+                st.error(f"Batch processing error: {str(e)}")
+
+        # Final progress update
+        progress_bar.progress(1.0, text=f"Completed {len(results)}/{total_docs}")
 
     # Clean up
     progress_bar.empty()
-    status_text.empty()
 
     # Create results DataFrame
     results_df = pd.DataFrame(results)

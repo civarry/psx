@@ -1,6 +1,7 @@
 """Email sending functionality for payslips"""
 
 import smtplib
+import time
 from email.message import EmailMessage
 from pathlib import Path
 from typing import Tuple
@@ -156,6 +157,58 @@ class EmailSender:
             return False, f"SMTP error: {str(e)}", False
         except Exception as e:
             return False, f"Error: {str(e)}", False
+
+    def reconnect_with_backoff(self, max_retries: int = 3) -> Tuple[bool, str]:
+        """
+        Attempt to reconnect with exponential backoff.
+
+        Args:
+            max_retries: Maximum number of reconnection attempts
+
+        Returns:
+            Tuple[bool, str]: (success, message)
+        """
+        for attempt in range(max_retries):
+            delay = 2 ** attempt  # 1, 2, 4 seconds
+            time.sleep(delay)
+            self.disconnect()
+            success, msg = self.connect()
+            if success:
+                return True, f"Reconnected after {attempt + 1} attempt(s)"
+        return False, "Max reconnection attempts reached"
+
+    def send_document_with_retry(self, row, pdf_path: str, document_type: str = "Payslip",
+                                  max_retries: int = 3) -> Tuple[bool, str, bool]:
+        """
+        Send document with automatic reconnection on connection failure.
+
+        Args:
+            row: pandas Series with employee data
+            pdf_path: Path to PDF file
+            document_type: Type of document
+            max_retries: Maximum number of retry attempts
+
+        Returns:
+            Tuple[bool, str, bool]: (success, message, quota_exceeded)
+        """
+        for attempt in range(max_retries):
+            success, message, quota = self.send_document(row, pdf_path, document_type)
+
+            if success or quota:
+                return success, message, quota
+
+            # Check if connection was closed or lost
+            message_lower = message.lower()
+            if "closed" in message_lower or "connection" in message_lower or "broken pipe" in message_lower:
+                reconnect_ok, reconnect_msg = self.reconnect_with_backoff(max_retries=2)
+                if not reconnect_ok:
+                    return False, f"Connection lost and reconnection failed: {reconnect_msg}", False
+                # Connection restored, retry will happen on next loop iteration
+            else:
+                # Non-connection error, don't retry
+                return success, message, quota
+
+        return False, "Max retry attempts reached", False
 
     def send_payslip(self, row, pdf_path: str) -> Tuple[bool, str, bool]:
         """
