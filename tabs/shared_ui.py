@@ -250,12 +250,13 @@ def render_results(results_df, dry_run=False, document_type=""):
         errors = len(results_df[results_df['Status'] == 'Error'])
         st.metric("Errors", errors)
 
-    # Send Telegram session summary (only if not dry run and there were failures)
+    # Send Telegram session summary (always, not just on failures)
     if not dry_run:
         sent = len(results_df[results_df['Status'] == 'Sent'])
         failed = len(results_df[results_df['Status'] == 'Failed'])
         skipped = len(results_df[results_df['Status'] == 'Skipped'])
-        send_session_summary(sent, failed, skipped)
+        company_name = st.session_state.get('company_name', '')
+        send_session_summary(sent, failed, skipped, company_name, document_type)
 
     # Display results table
     st.subheader("Detailed Results")

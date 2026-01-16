@@ -73,7 +73,7 @@ def send_error_alert(error_type: str, error_message: str, affected_count: int = 
     send_telegram_message(message)
 
 
-def send_session_summary(sent: int, failed: int, skipped: int, errors: dict = None):
+def send_session_summary(sent: int, failed: int, skipped: int, company_name: str = "", document_type: str = "PAYSLIP", errors: dict = None):
     """
     Send a session summary to Telegram after processing completes.
     
@@ -81,17 +81,28 @@ def send_session_summary(sent: int, failed: int, skipped: int, errors: dict = No
         sent: Number of emails successfully sent
         failed: Number of failed emails
         skipped: Number of skipped emails
+        company_name: Name of the company being processed
+        document_type: Type of document (PAYSLIP, EXCESS_OT, ALLOWANCE)
         errors: Optional dict of error counts by type
     """
     timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     total = sent + failed + skipped
     
-    # Only send if there were failures
-    if failed == 0:
-        return
+    # Format document type for display
+    doc_type_display = document_type.replace('_', ' ').title()
     
-    message = (
-        f"📊 <b>PAYSLIP SESSION SUMMARY</b>\n\n"
+    # Choose emoji based on success/failure
+    if failed == 0:
+        header = f"✅ <b>{doc_type_display.upper()} SESSION COMPLETE</b>"
+    else:
+        header = f"⚠️ <b>{doc_type_display.upper()} SESSION COMPLETE (WITH ERRORS)</b>"
+    
+    message = f"{header}\n\n"
+    
+    if company_name:
+        message += f"🏢 <b>Company:</b> {company_name}\n\n"
+    
+    message += (
         f"✅ Sent: {sent}\n"
         f"❌ Failed: {failed}\n"
         f"⏭️ Skipped: {skipped}\n"
@@ -99,9 +110,10 @@ def send_session_summary(sent: int, failed: int, skipped: int, errors: dict = No
         f"⏰ Time: {timestamp}"
     )
     
-    if errors:
+    if errors and failed > 0:
         message += "\n\n<b>Errors by Type:</b>\n"
         for error_type, count in errors.items():
             message += f"  • {error_type}: {count}\n"
     
     send_telegram_message(message)
+
