@@ -78,7 +78,7 @@ def render_data_preview(df, required_columns):
 
     # Display preview
     with st.expander("Data Preview", expanded=True):
-        st.dataframe(df.head(10), width='stretch')
+        st.dataframe(df, width='stretch')
 
     return True, []
 
