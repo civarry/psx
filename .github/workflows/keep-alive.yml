@@ -1,17 +1,31 @@
 name: Keep Streamlit Alive
 
-# Run outside work hours (8am-5pm PHT) to prevent Streamlit hibernation
+# Belt-and-suspenders keep-alive for Streamlit Cloud:
+#  1. HTTP GET the live app URL  -> simulates a real visitor (the signal
+#     Streamlit cannot ignore without breaking real users).
+#  2. Commit a real file change  -> repo-activity signal, in case Streamlit
+#     ever weights "recent commits" again.
+# Either signal alone should be enough; together they survive most future
+# tightening of Streamlit's hibernation heuristics.
 on:
   schedule:
-    # 7:00 AM PHT (23:00 UTC) - before work
-    # 6:00 PM PHT (10:00 UTC) - after work
-    # 2:00 AM PHT (18:00 UTC) - night backup
-    - cron: '0 10,18,23 * * *'
-  workflow_dispatch:  # Allow manual trigger
+    # Spread across the day so a single skipped GitHub Actions cron tick
+    # never leaves a >12h gap. Times are UTC.
+    - cron: '17 1 * * *'   #  9:17 AM PHT
+    - cron: '23 9 * * *'   #  5:23 PM PHT
+    - cron: '41 17 * * *'  #  1:41 AM PHT
+  workflow_dispatch:
+
+concurrency:
+  group: keep-alive
+  cancel-in-progress: false
 
 jobs:
   keep-alive:
     runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: write
 
     steps:
       - name: Checkout repository
@@ -19,15 +33,43 @@ jobs:
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
 
+      - name: Ping live app URL
+        env:
+          APP_URL: https://mpxpsl.streamlit.app/
+        run: |
+          set -euo pipefail
+          # Follow redirects, retry transient failures, use a real UA so the
+          # request looks like a browser visit rather than a generic bot.
+          STATUS=$(curl -sS -L \
+            --retry 3 --retry-delay 5 --retry-all-errors \
+            --max-time 60 \
+            -A "Mozilla/5.0 (compatible; GH-Actions-KeepAlive/1.0)" \
+            -o /dev/null -w "%{http_code}" \
+            "$APP_URL")
+          echo "App responded with HTTP $STATUS"
+          # 2xx and 3xx are both fine. Streamlit's hibernation splash returns
+          # 200 too, and that visit still counts as traffic.
+          case "$STATUS" in
+            2??|3??) ;;
+            *) echo "Unexpected status; failing so the run is visible."; exit 1 ;;
+          esac
+
       - name: Configure Git
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
 
-      - name: Update heartbeat file and push
+      - name: Write heartbeat and push
         run: |
+          set -euo pipefail
           NOW=$(TZ="Asia/Manila" date "+%Y-%m-%d %H:%M:%S PHT")
-          echo "$NOW" > heartbeat.txt
-          git add heartbeat.txt
-          git commit -m "chore: keep-alive heartbeat ${NOW} [skip ci]"
+          mkdir -p .keepalive
+          # Real file change every run -> non-empty diff -> commits aren't
+          # filtered out by any "ignore empty commits" heuristic.
+          printf '%s\n' "$NOW" > .keepalive/heartbeat.txt
+          git add .keepalive/heartbeat.txt
+          git commit -m "chore: keep-alive ${NOW} [skip ci]"
+          # Rebase-pull in case main moved during the run; safe because we
+          # only touch .keepalive/heartbeat.txt.
+          git pull --rebase origin main
           git push
