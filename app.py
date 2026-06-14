@@ -364,6 +364,17 @@ with st.sidebar:
         - Note: Use app password, not regular password!
         """)
 
+    # Notice: new application location
+    st.markdown(
+        """
+        <div class="app-notice">
+            <span class="app-notice-text">An updated version of this app is now available. Feel free to try it out and bookmark it for next time.</span>
+            <a class="app-notice-btn" href="https://mpxpsl.vercel.app/" target="_blank" rel="noopener noreferrer">Open updated version</a>
+        </div>
+        """,
+        unsafe_allow_html=True
+    )
+
 
 # ---------- MAIN APPLICATION ----------
 
