@@ -3,7 +3,7 @@
 Not imported by the application. Safe to regenerate on every CI run.
 """
 
-BUILD_ID = "20260624.200310"
-BUILD_HASH = "ef5f5aa2b8ae"
-BUILT_AT_UTC = "2026-06-24T12:03:10Z"
-BUILT_AT_PHT = "2026-06-24 20:03:10 PHT"
+BUILD_ID = "20260625.031622"
+BUILD_HASH = "cfee2bf030bf"
+BUILT_AT_UTC = "2026-06-24T19:16:22Z"
+BUILT_AT_PHT = "2026-06-25 03:16:22 PHT"
